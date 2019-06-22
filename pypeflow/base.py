@@ -112,7 +112,10 @@ class PipeElement(_Base):
         ------------------
         x : numpy array/pandas DataFrame
             The input flow that should be transformed and passed downstream
-
+self.input_dimensions = None
+        self.output_dimensions = None
+        self.input_columns = None
+        self.output_columns = None
         """
         try:
             self.input_dimensions = x.shape
@@ -161,6 +164,7 @@ class PipeElement(_Base):
             "id": id(self),
             "upstream": [id(element) for element in up],
             "downstream": [id(element) for element in down],
+            "attributes": self.__dict__,
         }
         return config
 
@@ -213,6 +217,7 @@ class PipeSystem(_Base):
 
     def validate_flow(self):
         marked = []
+        ## TODO: Add check for loops
 
         def mark_recursive(element):
             if isinstance(element, list) is False:
@@ -259,6 +264,8 @@ class PipeSystem(_Base):
 
     @classmethod
     def from_config(cls, config):
-        """
+        """TODO add description
+
+
         """
         return cls(**config)
