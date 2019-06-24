@@ -1,5 +1,11 @@
-"""
-TODO add description
+"""Module for Construction of PipeSystems
+
+The class PipeSystem is built as a container for the individual PipeElements. It handles
+The inlets and outlets of the PipeElements and ensuring that the flow from all outlets
+satisfy reachability in the PipeSystem's current configuration.
+
+TODO: Add Verbosity to the flow process
+
 """
 
 # Standard library imports
@@ -19,7 +25,7 @@ class PipeSystem(Base):
 
         Arguments
         ------------------
-        inlets: list
+        inlets : list
             The PipeElements that are data inlets for the PipeSystem
 
         outlets : list
@@ -90,12 +96,17 @@ class PipeSystem(Base):
 
         if len(self.inlets) != len(inlet_data):
             raise ValueError(
-                f"Inlet data requires {len(self.inlets)} sources, "
+                f"Inlet data requires {len(self.inlets)} source(s), "
                 f"but only {len(inlet_data)} were given"
             )
 
         for i in range(len(self.inlets)):
             self.inlets[i].flow(inlet_data[i])
+
+        self.input_dimensions = [x.input_dimensions for x in self.inlets]
+        self.input_columns = [x.input_columns for x in self.inlets]
+        self.output_dimensions = [x.output_dimensions for x in self.outlets]
+        self.output_columns = [x.output_columns for x in self.outlets]
 
         return [outlet.output for outlet in self.outlets]
 
@@ -104,7 +115,7 @@ class PipeSystem(Base):
 
         Returns
         ------------------
-        boolean
+        bool
             If the PipeSystem's flow is valid
 
         """
@@ -168,7 +179,8 @@ class PipeSystem(Base):
 
         Arguments
         ------------------
-        file_name : str
+        file_name : str (default="pipesystem.json")
+            The full file name where the json file should be written to
 
         :return:
         """

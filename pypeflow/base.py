@@ -1,6 +1,4 @@
-"""# TODO: Add module title
-
-# TODO: add module description
+"""Base class for PipeSystem and PipeElement
 
 """
 

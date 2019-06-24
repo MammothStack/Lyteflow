@@ -51,9 +51,10 @@ class PipeElement(Base):
 
 
         """
-
-        self.upstream = kwargs.get("upstream")
-        self.downstream = kwargs.get("downstream")
+        self.downstream = kwargs.get("upstream")
+        self.upstream = kwargs.get("downstream")
+        #self.attach_upstream(kwargs.get("upstream"))
+        #self.attach_downstream(kwargs.get("downstream"))
         if self.upstream is not None:
             kwargs.pop("upstream")
         if self.downstream is not None:
@@ -79,17 +80,14 @@ class PipeElement(Base):
         """
         try:
             self.input_dimensions = x.shape
-        except AttributeError:
-            pass
-        try:
             self.input_columns = x.columns
         except AttributeError:
             pass
 
         x = self.transform(x)
 
-        self.output_dimensions = x.shape
         try:
+            self.output_dimensions = x.shape
             self.output_columns = x.columns
         except AttributeError:
             pass
