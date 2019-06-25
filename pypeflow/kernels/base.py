@@ -53,8 +53,6 @@ class PipeElement(Base):
         """
         self.downstream = kwargs.get("upstream")
         self.upstream = kwargs.get("downstream")
-        #self.attach_upstream(kwargs.get("upstream"))
-        #self.attach_downstream(kwargs.get("downstream"))
         if self.upstream is not None:
             kwargs.pop("upstream")
         if self.downstream is not None:
