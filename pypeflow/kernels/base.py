@@ -35,7 +35,7 @@ class PipeElement(Base):
         Methods
         ------------------
         transform(x)
-            Method that is overwritten in each sub class
+            Method that is overridden in each sub class
 
         flow(x)
             Method that is called when passing data to next PipeElement

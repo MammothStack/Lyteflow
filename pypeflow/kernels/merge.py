@@ -79,17 +79,13 @@ class _Merge(PipeElement):
                         f"but requires at least {self.axis}"
                     )
 
-            self._reservoir = self.transform(
+            x = self.transform(
                 self._reservoir
             )
 
             try:
-                self.output_dimensions = (
-                    self._reservoir.shape
-                )
-                self.output_columns = (
-                    self._reservoir.columns
-                )
+                self.output_dimensions = x.shape
+                self.output_columns = x.columns
             except AttributeError:
                 pass
 
@@ -109,7 +105,7 @@ class _Merge(PipeElement):
 
     def to_config(self):
         config = super().to_config()
-        config["attributes"].pop("reservoir")
+        config["attributes"].pop("_reservoir")
         return config
 
     def __call__(self, *upstream):
