@@ -54,10 +54,10 @@ class Normalizer(PipeElement):
     dependent : bool (default=False)
         If the columns of the given input should be transformed dependent on the others
 
-    scale_from : tuple (default=(None, None))
+    scale_from : tuple
         The minimum, maximum from where the values are scaled from
 
-    scale_to : tuple (default=(0,1))
+    scale_to : tuple
         The minimum, maximum from where the values are scaled to
 
     upstream : PipeElement
