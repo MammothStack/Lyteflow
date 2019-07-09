@@ -7,15 +7,15 @@ TODO: flesh out PipeElement
 """
 
 # Standard library imports
+import importlib
 
 # Third party imports
 
 # Local application imports
-from pypeflow.base import Base
+from lyteflow.base import Base
 
 
 class PipeElement(Base):
-
     def __init__(self, **kwargs):
         """A basic pipe element that is super class for all other pipe elements
 
@@ -51,8 +51,8 @@ class PipeElement(Base):
 
 
         """
-        self.downstream = kwargs.get("upstream")
-        self.upstream = kwargs.get("downstream")
+        self.downstream = kwargs.get("downstream")
+        self.upstream = kwargs.get("upstream")
         if self.upstream is not None:
             kwargs.pop("upstream")
         if self.downstream is not None:
@@ -145,17 +145,42 @@ class PipeElement(Base):
         up = self.upstream if isinstance(self.upstream, list) else [self.upstream]
 
         attributes = self.__dict__.copy()
-        for i in ["upstream", "downstream", "input_dimensions", "output_dimensions", "input_columns", "output_columns"]:
+        for i in [
+            "upstream",
+            "downstream",
+            "input_dimensions",
+            "output_dimensions",
+            "input_columns",
+            "output_columns",
+        ]:
             attributes.pop(i, None)
 
         config = {
             "class_name": self.__class__.__name__,
-            "id": id(self),
-            "upstream": [id(element) if element is not None else None for element in up],
-            "downstream": [id(element) if element is not None else None for element in down],
+            "id": self.id,
+            "upstream": [None if element is None else element.id for element in up],
+            "downstream": [None if element is None else element.id for element in down],
             "attributes": attributes,
         }
         return config
+
+    @staticmethod
+    def from_config(config, upstream=None, downstream=None):
+        def _verify_connection(elements, updown="upstream"):
+            if not isinstance(elements, list):
+                elements = [elements]
+            for element in elements:
+                if element.id not in config[updown]:
+                    raise KeyError(f"{element.id} not found in config[{updown}]")
+
+        _cls = getattr(importlib.import_module("lyteflow"), config["class_name"])
+
+        if upstream is not None:
+            _verify_connection(upstream, "upstream")
+        if downstream is not None:
+            _verify_connection(downstream, "downstream")
+
+        return _cls(upstream=upstream, downstream=downstream, **config["attributes"])
 
     def __call__(self, upstream):
         """Attaches the given PipeElement in both directions

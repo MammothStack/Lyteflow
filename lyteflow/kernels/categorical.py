@@ -10,7 +10,7 @@
 import pandas as pd
 
 # Local application imports
-from pypeflow.kernels.base import PipeElement
+from lyteflow.kernels.base import PipeElement
 
 
 class Categorizer(PipeElement):

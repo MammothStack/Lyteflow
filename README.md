@@ -1,7 +1,7 @@
-# Pypeflow
+# Lyteflow
 Pipeline system for sequential data transformations
 ## Description
-Pypeflow is to ensure consistent, simple, and sequential data transformations. A System
+Lyteflow is to ensure consistent, simple, and sequential data transformations. A System
  of pipe elements can be created, and placed in a pipe system. The flow starts from 
  Inlets, flows through the individual pipe elements, and ends in an Outlet. The flow 
  from individual pipe elements are universally compatible. The pipe elements will 
@@ -9,11 +9,11 @@ Pypeflow is to ensure consistent, simple, and sequential data transformations. A
  context).
 ## Installation
 ```bash
-git clone https://github.com/MammothStack/Pypeflow.git pypeflow
+git clone https://github.com/MammothStack/Lyteflow.git Lyteflow
 ```
 ## Usages
 ```python
-from pypeflow import PipeSystem, Inlet, Outlet, Normalizer, Rotator
+from Lyteflow import PipeSystem, Inlet, Outlet, Normalizer, Rotator
 
 images = get_data()
 in_1 = Inlet(convert=False)
@@ -27,6 +27,7 @@ processed_images = ps.flow(images)
 ## Support
 ## Contributing
 ## Authors
+Patrick Bogner
 ## License
 [MIT](https://choosealicense.com/licenses/mit/)
 ## Status

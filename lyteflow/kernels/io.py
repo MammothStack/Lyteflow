@@ -1,7 +1,7 @@
 """All PipeElements that handle In/Out flow of data in the PipeSystem
 
 Inlet and Outlet classes are the only PipeElements that are recognized
-and specified by the pypeflow.PipeSystem.
+and specified by the lyteflow.PipeSystem.
 
 """
 
@@ -15,11 +15,10 @@ import pandas as pd
 # import pandas as pd
 
 # Local application imports
-from pypeflow.kernels.base import PipeElement
+from lyteflow.kernels.base import PipeElement
 
 
 class Inlet(PipeElement):
-
     def __init__(self, convert=True, **kwargs):
         """Inlet for data at beginning of the PipeSystem
 
@@ -74,9 +73,8 @@ class Inlet(PipeElement):
 
         """
         if self.convert:
-            if isinstance(x, list):
-                x = np.asarray(x)
-                self.input_dimensions = x.shape
+            x = np.asarray(x)
+            self.input_dimensions = x.shape
             if len(x.shape) == 1 or len(x.shape) == 2:
                 x = pd.DataFrame(x)
                 self.input_columns = x.columns
@@ -89,7 +87,6 @@ class Inlet(PipeElement):
 
 
 class Outlet(PipeElement):
-
     def __init__(self, **kwargs):
         """Outlet for data at end of the PipeSystem
 
@@ -157,18 +154,12 @@ class Outlet(PipeElement):
 
         """
         try:
-            self.input_dimensions = x.shape
-            self.input_columns = x.columns
+            self.input_dimensions = self.output_dimensions = x.shape
+            self.input_columns = self.output_columns = x.columns
         except AttributeError:
             pass
 
-        x = self.transform(x)
-
-        try:
-            self.output_dimensions = x.shape
-            self.output_columns = x.columns
-        except AttributeError:
-            pass
+        self.transform(x)
 
     def to_config(self):
         config = super().to_config()

@@ -17,7 +17,7 @@ import numpy as np
 from scipy.ndimage.interpolation import rotate
 
 # Local application imports
-from pypeflow.kernels.base import PipeElement
+from lyteflow.kernels.base import PipeElement
 
 
 def calculate_depad_value(input_shape, output_shape, mode="m"):

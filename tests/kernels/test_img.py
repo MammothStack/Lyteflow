@@ -3,7 +3,7 @@ import pytest
 import numpy as np
 
 # Local application imports
-from pypeflow.kernels.img import *
+from lyteflow.kernels.img import *
 
 
 @pytest.fixture

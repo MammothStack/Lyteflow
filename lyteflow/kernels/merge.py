@@ -7,16 +7,15 @@
 # Standard library imports
 
 # Third party imports
-from pandas import concat
+import pandas as pd
+import numpy as np
 
 # Local application imports
-from pypeflow.kernels.base import PipeElement
+from lyteflow.kernels.base import PipeElement
 
 
 class _Merge(PipeElement):
-    def __init__(
-        self, axis=0, ignore_index=False, **kwargs
-    ):
+    def __init__(self, axis=0, ignore_index=False, **kwargs):
         """Merging multiple inputs into a single DataFrame
 
         Arguments
@@ -63,12 +62,8 @@ class _Merge(PipeElement):
 
         if len(self._reservoir) == len(self.upstream):
             try:
-                self.input_dimensions = [
-                    x.shape for x in self._reservoir
-                ]
-                self.input_columns = [
-                    x.columns for x in self._reservoir
-                ]
+                self.input_dimensions = [x.shape for x in self._reservoir]
+                self.input_columns = [x.columns for x in self._reservoir]
             except AttributeError:
                 pass
 
@@ -79,9 +74,7 @@ class _Merge(PipeElement):
                         f"but requires at least {self.axis}"
                     )
 
-            x = self.transform(
-                self._reservoir
-            )
+            x = self.transform(self._reservoir)
 
             try:
                 self.output_dimensions = x.shape
@@ -89,7 +82,7 @@ class _Merge(PipeElement):
             except AttributeError:
                 pass
 
-            self.downstream.flow(self._reservoir)
+            self.downstream.flow(x)
             self._reservoir = []
 
     def attach_upstream(self, *upstream):
@@ -130,18 +123,13 @@ class _Merge(PipeElement):
 
 class Concatenator(_Merge):
     def transform(self, x):
-        return concat(
-            x,
-            axis=self.axis,
-            ignore_index=self.ignore_index,
-        )
+        def _to_numpy(df):
+            try:
+                return df.values
+            except AttributeError:
+                return np.asarray(df)
 
-
-class Merger(_Merge):
-    def transform(self, x):
-        return concat(
-            x,
-            axis=self.axis,
-            ignore_index=self.ignore_index,
-            join="inner",
-        )
+        try:
+            return pd.concat(x, axis=self.axis, ignore_index=self.ignore_index)
+        except TypeError:
+            return np.concatenate([_to_numpy(a) for a in x], axis=self.axis)

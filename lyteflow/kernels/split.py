@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 
 # Local application imports
-from pypeflow.kernels.base import PipeElement
+from lyteflow.kernels.base import PipeElement
 
 
 class _Split(PipeElement):
@@ -52,12 +52,8 @@ class _Split(PipeElement):
         x = self.transform(x)
 
         try:
-            self.output_dimensions = [
-                y.shape for y in x
-            ]
-            self.output_columns = [
-                y.columns for y in x
-            ]
+            self.output_dimensions = [y.shape for y in x]
+            self.output_columns = [y.columns for y in x]
         except AttributeError:
             pass
 
@@ -65,4 +61,9 @@ class _Split(PipeElement):
             self.downstream[i].flow(x[i])
 
 
+class Duplicator(_Split):
+    def __init__(self, **kwargs):
+        _Split.__init__(self, **kwargs)
 
+    def transform(self, x):
+        return [x.copy() for i in range(len(self.downstream))]

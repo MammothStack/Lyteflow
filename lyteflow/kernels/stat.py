@@ -11,11 +11,11 @@ import pandas as pd
 import numpy as np
 
 # Local application imports
-from pypeflow.kernels.base import PipeElement
+from lyteflow.kernels.base import PipeElement
 
 
 def _handle_zero_scalar(scalar):
-    """Transforms all 0 occurences in scalar or list of scalars
+    """Transforms all 0 occurrences in scalar or list of scalars
 
     Arguments
     ------------------
@@ -154,6 +154,10 @@ class Normalizer(PipeElement):
 
 
 class Standardizer(PipeElement):
+    """
+    # TODO
+    """
+
     def __init__(self, dependent=False, **kwargs):
         PipeElement.__init__(self, **kwargs)
         self.dependent = dependent
@@ -167,3 +171,19 @@ class Standardizer(PipeElement):
             (x_val - mean) / _handle_zero_scalar(std),
             columns=x.columns + ":standardized",
         )
+
+
+class Scaler(PipeElement):
+    """
+    ' TODO
+    """
+
+    def __init__(self, scalar, **kwargs):
+        PipeElement.__init__(self, **kwargs)
+        self.scalar = scalar
+
+    def transform(self, x):
+        try:
+            return pd.DataFrame(x.values * self.scalar)
+        except AttributeError:
+            return x * self.scalar

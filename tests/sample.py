@@ -1,40 +1,20 @@
-from pypeflow.kernels import *
-from pypeflow.construct import PipeSystem
+from lyteflow.kernels import *
+from lyteflow.construct import PipeSystem
 import pandas as pd
 import numpy as np
 
-inp1 = Inlet(name="Inlet 1")
-x = Categorizer(name="categorizer 1", columns=["str"], sparse=True, absent_ignore=True)(
-    inp1
-)
+images = np.random.randint(1, 5, (10, 10, 10))
+labels = np.random.randint(0, 10, 10)
 
-inp2 = Inlet(name="Inlet 2")
-y = Categorizer(
-    name="categorizer 2", columns=["str1"], sparse=True, absent_ignore=True
-)(inp2)
+in_1 = Inlet(convert=False, name="in_1")
+sca = Scaler(scalar=1 / 255)(in_1)
+rot = Rotator([90, -90], remove_padding=False, keep_original=True)(sca)
+out_1 = Outlet(name="out_1")(rot)
 
-conc = Concatenator(axis=1)(x, y)
+in_2 = Inlet(convert=True, name="in_2")
+cat = Categorizer(sparse=True)(in_2)
+dup = Duplicator()(cat)
+con = Concatenator()(dup, dup, dup)
+out_2 = Outlet(name="out_2")(con)
 
-out = Outlet(name="Outlet 1")(conc)
-
-ps = PipeSystem(inlets=[inp1, inp2], outlets=[out], name="Pipe system")
-
-df1 = pd.DataFrame(
-    {"int1": [1, 3, 4, 1, 0], "str": ["test", "hello", "test", "fire", "test"]}
-)
-
-df2 = pd.DataFrame({"str1": ["s", "a", "s", "s", "s"], "int2": [3, 4, 3, 3, 4]})
-
-arr = np.array(range(16)).reshape(4, 4)
-l = []
-for i in range(100):
-    l.append(arr.copy())
-
-arr = np.asarray(l)
-
-brr = [1, 2, 2, 3, 3, 4, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-
-"""This is a test to see if there is anything wrong when writing more than 120 
-characters maybe thats a problem"""
-
-s = f"this is a test string {2 + 2}" f" this is the second part of the string {3 + 3}"
+ps = PipeSystem(inlets=[in_1, in_2], outlets=[out_1, out_2], name="ps")
