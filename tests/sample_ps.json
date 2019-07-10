@@ -1,0 +1,191 @@
+{
+    "inlets": [
+        {
+            "class_name": "Inlet",
+            "id": 139984241003320,
+            "upstream": [
+                null
+            ],
+            "downstream": [
+                139984241003768
+            ],
+            "attributes": {
+                "name": "in_1",
+                "id": 139984241003320,
+                "convert": false
+            }
+        },
+        {
+            "class_name": "Inlet",
+            "id": 139984241004272,
+            "upstream": [
+                null
+            ],
+            "downstream": [
+                139984241004328
+            ],
+            "attributes": {
+                "name": "in_2",
+                "id": 139984241004272,
+                "convert": true
+            }
+        }
+    ],
+    "outlets": [
+        {
+            "class_name": "Outlet",
+            "id": 139984241004104,
+            "upstream": [
+                139984241003880
+            ],
+            "downstream": [
+                null
+            ],
+            "attributes": {
+                "name": "out_1",
+                "id": 139984241004104
+            }
+        },
+        {
+            "class_name": "Outlet",
+            "id": 139983642610208,
+            "upstream": [
+                139984236867936
+            ],
+            "downstream": [
+                null
+            ],
+            "attributes": {
+                "name": "out_2",
+                "id": 139983642610208
+            }
+        }
+    ],
+    "elements": [
+        {
+            "class_name": "Scaler",
+            "id": 139984241003768,
+            "upstream": [
+                139984241003320
+            ],
+            "downstream": [
+                139984241003880
+            ],
+            "attributes": {
+                "name": "Scaler",
+                "id": 139984241003768,
+                "scalar": 0.00392156862745098
+            }
+        },
+        {
+            "class_name": "Rotator",
+            "id": 139984241003880,
+            "upstream": [
+                139984241003768
+            ],
+            "downstream": [
+                139984241004104
+            ],
+            "attributes": {
+                "name": "Rotator",
+                "id": 139984241003880,
+                "keep_original": true,
+                "rotations": [
+                    -90,
+                    0,
+                    90
+                ],
+                "remove_padding": false
+            }
+        },
+        {
+            "class_name": "Categorizer",
+            "id": 139984241004328,
+            "upstream": [
+                139984241004272
+            ],
+            "downstream": [
+                139984236867768
+            ],
+            "attributes": {
+                "name": "Categorizer",
+                "id": 139984241004328,
+                "columns": null,
+                "sparse": true,
+                "absent_ignore": false,
+                "keep": false
+            }
+        },
+        {
+            "class_name": "Duplicator",
+            "id": 139984236867768,
+            "upstream": [
+                139984241004328
+            ],
+            "downstream": [
+                139984236867936,
+                139984236867936,
+                139984236867936
+            ],
+            "attributes": {
+                "name": "Duplicator",
+                "id": 139984236867768
+            }
+        },
+        {
+            "class_name": "Concatenator",
+            "id": 139984236867936,
+            "upstream": [
+                139984236867768,
+                139984236867768,
+                139984236867768
+            ],
+            "downstream": [
+                139983642610208
+            ],
+            "attributes": {
+                "name": "Concatenator",
+                "id": 139984236867936,
+                "axis": 0,
+                "ignore_index": false
+            }
+        },
+        {
+            "class_name": "Concatenator",
+            "id": 139984236867936,
+            "upstream": [
+                139984236867768,
+                139984236867768,
+                139984236867768
+            ],
+            "downstream": [
+                139983642610208
+            ],
+            "attributes": {
+                "name": "Concatenator",
+                "id": 139984236867936,
+                "axis": 0,
+                "ignore_index": false
+            }
+        },
+        {
+            "class_name": "Concatenator",
+            "id": 139984236867936,
+            "upstream": [
+                139984236867768,
+                139984236867768,
+                139984236867768
+            ],
+            "downstream": [
+                139983642610208
+            ],
+            "attributes": {
+                "name": "Concatenator",
+                "id": 139984236867936,
+                "axis": 0,
+                "ignore_index": false
+            }
+        }
+    ],
+    "name": "ps"
+}
