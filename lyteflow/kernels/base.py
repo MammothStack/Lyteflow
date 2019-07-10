@@ -8,6 +8,7 @@ TODO: flesh out PipeElement
 
 # Standard library imports
 import importlib
+import numpy as np
 
 # Third party imports
 
