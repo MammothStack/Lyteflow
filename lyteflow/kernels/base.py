@@ -8,7 +8,6 @@ TODO: flesh out PipeElement
 
 # Standard library imports
 import importlib
-import numpy as np
 
 # Third party imports
 
@@ -29,6 +28,8 @@ class PipeElement(Base):
         downstream : PipeElement/list of PipeElement
             The pipe element which is connected downstream, meaning this pipe
             element will flow data to the downstream element
+
+        TODO: add requiremnts
 
         name : str
             The name that should be given to the PipeElement
@@ -54,12 +55,35 @@ class PipeElement(Base):
         """
         self.downstream = kwargs.get("downstream")
         self.upstream = kwargs.get("upstream")
-        if self.upstream is not None:
-            kwargs.pop("upstream")
-        if self.downstream is not None:
-            kwargs.pop("downstream")
+        self.requirements = kwargs.get("requirements")
+
+        kwargs.pop("upstream", None)
+        kwargs.pop("downstream", None)
+        kwargs.pop("requirements", None)
+
+        self._executed = False
+        # self._output = None
 
         Base.__init__(self, **kwargs)
+
+    @property
+    def executed(self):
+        return self._executed
+
+    def can_execute(self):
+        try:
+            for u in self.upstream:
+                if not u.executed():
+                    return False
+        except AttributeError:
+            if not self.upstream.executed():
+                return False
+
+        for r in self.requirements:
+            if not r.upstream.executed():
+                return False
+
+        return True
 
     def transform(self, x):
         """Returns the given input"""
@@ -77,21 +101,29 @@ class PipeElement(Base):
             The input flow that should be transformed and passed downstream
 
         """
+        if not self.can_execute():
+            raise AttributeError("Upstream elements or requirements are not executed")
+        for requirement in self.requirements:
+            self.__setattr__(
+                requirement.argument,
+                requirement.upstream.__getattr__(requirement.attribute),
+            )
         try:
             self.input_dimensions = x.shape
             self.input_columns = x.columns
         except AttributeError:
             pass
 
-        x = self.transform(x)
+        if x is not None:
+            x = self.transform(x)
 
         try:
             self.output_dimensions = x.shape
             self.output_columns = x.columns
         except AttributeError:
             pass
-
-        self.downstream.flow(x)
+        self._executed = True
+        return self.downstream, x
 
     def attach_upstream(self, upstream):
         """Attaches an upstream PipeElement
@@ -131,6 +163,14 @@ class PipeElement(Base):
         else:
             raise AttributeError("Downstream object already set")
 
+    def add_requirement(self, *requirements):
+        """
+
+        :param requirements:
+        :return:
+        """
+        self.requirements = self.requirements + set(requirements)
+
     def to_config(self):
         """Creates a dictionary of class variables
 
@@ -153,15 +193,22 @@ class PipeElement(Base):
             "output_dimensions",
             "input_columns",
             "output_columns",
+            "_executed",
+            "requirements",
         ]:
             attributes.pop(i, None)
 
+        if self.requirements is None:
+            req = [None]
+        else:
+            req = [r.to_config() for r in self.requirements]
+
         config = {
             "class_name": self.__class__.__name__,
-            "id": self.id,
             "upstream": [None if element is None else element.id for element in up],
             "downstream": [None if element is None else element.id for element in down],
             "attributes": attributes,
+            "requirements": req,
         }
         return config
 
@@ -200,5 +247,68 @@ class PipeElement(Base):
         upstream.attach_downstream(self)
         return self
 
+    def __eq__(self, other):
+        if isinstance(other, PipeElement):
+            return self.to_config() == other.to_config()
+        else:
+            return False
+
+    def __hash__(self):
+        to_hash = []
+        conf = self.to_config()
+        to_hash.append(conf["class_name"])
+        to_hash += (
+            conf["upstream"]
+            + conf["downstream"]
+            + [conf["attributes"]["name"]]
+            + conf["requirements"]
+        )
+        return hash(tuple(to_hash))
+
     def __repr__(self):
-        return f"{self.__class__.__name__}: {self.name}"
+        return f"{self.__class__.__name__}: {self.name}::{self.id}"
+
+
+class Requirement:
+    """
+    # TODO: add docstring
+    """
+
+    def __init__(self, upstream, downstream, attribute, argument):
+        if upstream is None:
+            raise ValueError("upstream cannot be None")
+
+        if downstream is None:
+            raise ValueError("downstream cannot be None")
+
+        self.upstream = upstream
+        self.downstream = downstream
+        self.attribute = attribute
+        self.argument = argument
+
+    def to_config(self):
+        d = self.__dict__.copy()
+        d.update({"upstream": d["upstream"].id, "downstream": d["downstream"].id})
+        return d
+
+    def __repr__(self):
+        return (
+            f"{self.__class__.__name__}:{self.upstream} --({self.attribute})-"
+            f"({self.argument})--> {self.downstream}"
+        )
+
+    def __eq__(self, other):
+        if isinstance(other, Requirement):
+            return (
+                self.upstream.id == other.upstream.id
+                and self.downstream.id == other.downstream.id
+                and self.attribute == other.attribute
+                and self.argument == other.argument
+            )
+        else:
+            return False
+
+    def __hash__(self):
+        return hash(
+            (self.upstream.id, self.downstream.id, self.attribute, self.argument)
+        )

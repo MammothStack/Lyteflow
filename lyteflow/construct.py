@@ -121,27 +121,6 @@ class PipeSystem(Base):
 
         """
 
-        marked = []
-
-        def mark_recursive(element):
-            if isinstance(element, list) is False:
-                element = [element]
-
-            for e in element:
-                if isinstance(e.upstream, list) is False:
-                    ups = [e.upstream]
-                else:
-                    ups = e.upstream
-
-                if set(ups).issubset(set(marked)) or ups[0] is None:
-                    marked.append(e)
-                    if e.downstream is not None:
-                        mark_recursive(e.downstream)
-
-        mark_recursive(self.inlets)
-
-        return set(self.inlets + self.outlets).issubset(set(marked))
-
     def to_config(self):
         """Gives a configuration dictionary of class arguments
 
