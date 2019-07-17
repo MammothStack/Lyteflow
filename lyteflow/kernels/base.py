@@ -106,7 +106,7 @@ class PipeElement(Base):
         for requirement in self.requirements:
             self.__setattr__(
                 requirement.argument,
-                requirement.upstream.__getattr__(requirement.attribute),
+                requirement.pipe_element.__getattr__(requirement.attribute),
             )
         try:
             self.input_dimensions = x.shape
@@ -264,36 +264,33 @@ class Requirement:
     # TODO: add docstring
     """
 
-    def __init__(self, upstream, downstream, attribute, argument):
-        if upstream is None:
-            raise ValueError("upstream cannot be None")
-
-        if downstream is None:
-            raise ValueError("downstream cannot be None")
-
-        self.upstream = upstream
-        self.downstream = downstream
+    def __init__(self, pipe_element, attribute, argument):
+        self.pipe_element
         self.attribute = attribute
         self.argument = argument
 
     def to_config(self):
-        d = self.__dict__.copy()
-        d.update({"upstream": d["upstream"].id, "downstream": d["downstream"].id})
-        return d
+        return {
+            "pipe_element": self.pipe_element.id, 
+            "attribute": self.attribute, 
+            "argument":self.argument
+        }
 
     def __repr__(self):
         return (
-            f"{self.__class__.__name__}:{self.upstream} --({self.attribute})-"
-            f"({self.argument})--> {self.downstream}"
+            f"{self.__class__.__name__}:{self.pipe_element} ({self.attribute})-->"
+            f"({self.argument})"
         )
 
     def __eq__(self, other):
         return(
 			self.__class__ == other.__class__
-			and self.upstream.id == other.upstream.id
-			and self.downstream.id == other.downstream.id
+			and self.pipe_element.id == other.pipe_element.id
 			and self.attribute == other.attribute
 			and self.argument == other.argument
 		)
+		
+	def __hash__(self):
+	    return hash((self.pipe_element.id, self.attribute, self.argument))
 
 
