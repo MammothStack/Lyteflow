@@ -249,21 +249,11 @@ class PipeElement(Base):
 
     def __eq__(self, other):
         if isinstance(other, PipeElement):
-            return self.to_config() == other.to_config()
+            return self.__class__ == other.__class__ and self.to_config() == other.to_config()
         else:
             return False
-
-    def __hash__(self):
-        to_hash = []
-        conf = self.to_config()
-        to_hash.append(conf["class_name"])
-        to_hash += (
-            conf["upstream"]
-            + conf["downstream"]
-            + [conf["attributes"]["name"]]
-            + conf["requirements"]
-        )
-        return hash(tuple(to_hash))
+		
+		
 
     def __repr__(self):
         return f"{self.__class__.__name__}: {self.name}::{self.id}"
@@ -298,17 +288,12 @@ class Requirement:
         )
 
     def __eq__(self, other):
-        if isinstance(other, Requirement):
-            return (
-                self.upstream.id == other.upstream.id
-                and self.downstream.id == other.downstream.id
-                and self.attribute == other.attribute
-                and self.argument == other.argument
-            )
-        else:
-            return False
+        return(
+			self.__class__ == other.__class__
+			and self.upstream.id == other.upstream.id
+			and self.downstream.id == other.downstream.id
+			and self.attribute == other.attribute
+			and self.argument == other.argument
+		)
 
-    def __hash__(self):
-        return hash(
-            (self.upstream.id, self.downstream.id, self.attribute, self.argument)
-        )
+
