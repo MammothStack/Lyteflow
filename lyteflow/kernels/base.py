@@ -59,7 +59,7 @@ class PipeElement(Base):
 
         kwargs.pop("upstream", None)
         kwargs.pop("downstream", None)
-        kwargs.pop("requirements", None)
+        kwargs.pop("requirements", set())
 
         self._executed = False
         # self._output = None
@@ -169,7 +169,7 @@ class PipeElement(Base):
         :param requirements:
         :return:
         """
-        self.requirements = self.requirements + set(requirements)
+        self.requirements = set(list(self.requirements) + list(requirements))
 
     def to_config(self):
         """Creates a dictionary of class variables
@@ -290,7 +290,5 @@ class Requirement:
 			and self.argument == other.argument
 		)
 		
-	def __hash__(self):
+    def __hash__(self):
 	    return hash((self.pipe_element.id, self.attribute, self.argument))
-
-
