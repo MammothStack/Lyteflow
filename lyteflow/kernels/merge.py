@@ -1,6 +1,12 @@
-"""# TODO: Add module title
+"""Module for all PipeElements that merge multiple inputs
 
-# TODO: add module description
+When the result of two or more PipeElements needs to be merged/
+concatenated a specific PipeElement needs to be employed in
+order to handle the multiple inputs. The _Merge class is the
+super class for all PipeElements that need to merge inputs.
+
+The _Merge class itself is also a PipeElement so the basic logic
+such as creating configurations is maintained.
 
 """
 
@@ -15,7 +21,25 @@ from lyteflow.kernels.base import PipeElement
 
 
 class _Merge(PipeElement):
-    """Merging multiple inputs into a single array"""
+    """Merging multiple inputs into a single array
+    
+    This class is a subclass of PipeElement and most functions
+    of PipeElement are maintained. This is an abstract base class
+    for all PipeElements that need to merge multiple inputs into
+    a single data object.
+    
+    Methods
+    ------------------
+    flow(*x)
+        Merge elements through transform(x)
+        
+    attach_upstream(*upstream)
+        Attaches multiple upstream PipeElements in sequence
+    
+    __call__(*upstream)
+        Attaches the given PipeElements in both directions
+    
+    """
     
     def __init__(self, axis=0, ignore_index=False, **kwargs):
         """Constructor
@@ -34,7 +58,7 @@ class _Merge(PipeElement):
         self.ignore_index = ignore_index
 
     def flow(self, *x):
-        """Merge Elements through transform(x)
+        """Merge elements through transform(x)
 
         Receives the flow x. In case not all upstream PipeElements
         have flown their data to this, then the data will be stored
@@ -47,34 +71,38 @@ class _Merge(PipeElement):
             The input flow that should be transformed and passed downstream
 
         """
-        for 
+        ordered_reservoir = []
         
-        self._reservoir.append(x)
+        for up in self.upstream:
+            for input in x:
+                if up == input[0]:
+                    ordered_reservoir.append(input[1])
+                    
+        if len(ordered_reservoir) != len(self.upstream):
+            raise ValueError("Given data could not be fitted to upstream elements")
 
-        if len(self._reservoir) == len(self.upstream):
-            try:
-                self.input_dimensions = [x.shape for x in self._reservoir]
-                self.input_columns = [x.columns for x in self._reservoir]
-            except AttributeError:
-                pass
+        try:
+            self.input_dimensions = [x.shape for x in ordered_reservoir]
+            self.input_columns = [x.columns for x in ordered_reservoir]
+        except AttributeError:
+            pass
 
-            for data in self._reservoir:
-                if len(data.shape) < self.axis:
-                    raise AttributeError(
-                        f"Given data has only {len(data.shape)} axes, "
-                        f"but requires at least {self.axis}"
-                    )
+        for data in ordered_reservoir:
+            if len(data.shape) <= self.axis:
+                raise AttributeError(
+                    f"Given data has only {len(data.shape)} axes, "
+                    f"but requires at least {self.axis}"
+                )
 
-            x = self.transform(self._reservoir)
+        x = self.transform(ordered_reservoir)
 
-            try:
-                self.output_dimensions = x.shape
-                self.output_columns = x.columns
-            except AttributeError:
-                pass
-
-            self.downstream.flow(x)
-            self._reservoir = []
+        try:
+            self.output_dimensions = x.shape
+            self.output_columns = x.columns
+        except AttributeError:
+            pass
+            
+        return self.downstream[0], x
 
     def attach_upstream(self, *upstream):
         """Attaches multiple upstream PipeElements in sequence
@@ -85,15 +113,10 @@ class _Merge(PipeElement):
             The PipeElements that should be added to upstream source
 
         """
-        self.upstream = self.upstream + list(upstream)
-
-    def to_config(self):
-        config = super().to_config()
-        config["attributes"].pop("_reservoir")
-        return config
+        self.upstream += upstream
 
     def __call__(self, *upstream):
-        """Attaches the given PipeElement in both directions
+        """Attaches the given PipeElements in both directions
 
         Arguments
         ------------------
@@ -111,7 +134,7 @@ class _Merge(PipeElement):
 
         return self
 
-
+        
 class Concatenator(_Merge):
     def transform(self, x):
         def _to_numpy(df):
@@ -120,7 +143,7 @@ class Concatenator(_Merge):
             except AttributeError:
                 return np.asarray(df)
 
-    try:
-        return pd.concat(x, axis=self.axis, ignore_index=self.ignore_index)
-    except TypeError:
-        return np.concatenate([_to_numpy(a) for a in x], axis=self.axis)
+        try:
+            return pd.concat(x, axis=self.axis, ignore_index=self.ignore_index)
+        except TypeError:
+            return np.concatenate([_to_numpy(a) for a in x], axis=self.axis)
