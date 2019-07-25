@@ -18,6 +18,7 @@ import importlib
 from lyteflow.base import Base
 from lyteflow.kernels.io import Inlet, Outlet
 from lyteflow.kernels.base import PipeElement
+from lyteflow.util import fetch_pipe_elements
 
 
 class PipeSystem(Base):
@@ -103,7 +104,7 @@ class PipeSystem(Base):
 
         for i in range(len(self.inlets)):
             self.inlets[i].flow(inlet_data[i])
-
+            
         self.input_dimensions = [x.input_dimensions for x in self.inlets]
         self.input_columns = [x.input_columns for x in self.inlets]
         self.output_dimensions = [x.output_dimensions for x in self.outlets]
@@ -120,6 +121,7 @@ class PipeSystem(Base):
             If the PipeSystem's flow is valid
 
         """
+        pass
 
     def to_config(self):
         """Gives a configuration dictionary of class arguments
@@ -136,21 +138,10 @@ class PipeSystem(Base):
 
         """
 
-        def traverse(element):
-            if not isinstance(element, list):
-                element = [element]
-
-            for e in element:
-                if e not in elements and e not in self.inlets and e not in self.outlets:
-                    elements.append(e.to_config())
-
-                if e.downstream is not None:
-                    traverse(e.downstream)
-
         if not self.validate_flow():
             raise AttributeError("Invalid Pipesystems cannot be serialized")
-        elements = []
-        traverse(self.inlets)
+        elements = fetch_pipe_elements(pipesystem=self, ignore_inlets=True, ignore_outlets=True)
+        elements = [e.to_config() for e in elements]
         in_conf = [e.to_config() for e in self.inlets]
         out_conf = [e.to_config() for e in self.outlets]
 

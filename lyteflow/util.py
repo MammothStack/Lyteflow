@@ -18,26 +18,27 @@ import queue
 import pandas as pd
 
 # Local application imports
+from lyteflow.kernels.base import PipeElement
 
-def fetch_pipe_elements(pipesystem):
-    elements = []
-    
+def fetch_pipe_elements(pipesystem, ignore_inlets=False, ignore_outlets=False):
     def traverse(element):
         if element is None:
             return
             
-        if isinstance(element, PipeElement):
-            if not element in elements:
+        if not element in elements:
+            if ignore_inlets and element in pipesystem.inlets:
+                pass
+            elif ignore_outlets and element in pipesystem.outlets:
+                pass
+            else:
                 elements.append(element)
-                
-        if isinstance(element.downstream, list):
-            down = element.downstream
-        else:
-            down = [element.downstream]
-        
-        for d in down:
-            traverse(down)
             
+        for down in element.downstream:
+            traverse(down)
+    
+    elements = []
+    for i in pipesystem.inlets:
+        traverse(i)
     return elements
     
 class PTGraph:
@@ -53,9 +54,12 @@ class PTGraph:
         
         # Get all pipe elements
         all_elements = fetch_pipe_elements(ps)
+        for e in all_elements:
+            print(e)
         
         # Create transition relations for each pipe element
-        petr = {e: _PipeElementTransitionRelation(e) for e in all_elements}
+        petr = {e.id: _PipeElementTransitionRelation(e) for e in all_elements}
+        print(petr)
         
         for pt in petr.values():
             # For each upstream element create a singular node
@@ -66,7 +70,7 @@ class PTGraph:
             for up in ups:
                 if up is not None:
                     n = _Node()
-                    petr[up].transition.add_to_node(n)
+                    petr[up.id].transition.add_to_node(n)
                     pt.transition.add_from_node(n)
             
             # For each downstream element create singular node
@@ -77,24 +81,24 @@ class PTGraph:
             for down in downs:
                 if down is not None:
                     n = _Node()
-                    petr[down].transition.add_from_node(n)
+                    petr[down.id].transition.add_from_node(n)
                     pt.transition.add_to_node(n)
             
             # For each requirement connect transition to meta node
             for r in pt.pipe_element.requirements:
-                n = petr[r.pipe_element].meta_node
+                n = petr[r.pipe_element.id].meta_node
                 pt.transition.add_from_node(n)
                 pt.transition.add_to_node(n)
                 
         # Create upstream nodes for inlets and designate them as M_0
         for inlet in ps.inlets:
             n = _Node(marked=True)
-            petr[inlet].transition.add_from_node(n)
+            petr[inlet.id].transition.add_from_node(n)
             self.M_0 = set(list(self.M_0) + [n])
             
         for outlet in ps.outlets:
             n = _Node()
-            petr[outlet].transition.add_to_node(n)
+            petr[outlet.id].transition.add_to_node(n)
             self.F = set(list(self.F) + [n])
             
         self.T = set([p.transition for p in petr.values()])

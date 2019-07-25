@@ -8,6 +8,7 @@ TODO: flesh out PipeElement
 
 # Standard library imports
 import importlib
+import warnings
 
 # Third party imports
 
@@ -21,15 +22,21 @@ class PipeElement(Base):
 
         Arguments
         ------------------
-        upstream : PipeElement/list of PipeBasicElement
+        upstream : PipeElement/tuple of PipeBasicElement
             The pipe element which is connected upstream, meaning the upstream
             element will flow data to this element
 
-        downstream : PipeElement/list of PipeElement
+        downstream : PipeElement/tuple of PipeElement
             The pipe element which is connected downstream, meaning this pipe
             element will flow data to the downstream element
 
-        TODO: add requiremnts
+        requirements : Requirment/set of Requirement
+            The Requirements of this PipeElement based on the values of other
+            PipeElements
+            
+        func : function
+            Transformer function used to transform the input. When this argument
+            cannot be saved in the PipeElement.to_config() method
 
         name : str
             The name that should be given to the PipeElement
@@ -41,6 +48,9 @@ class PipeElement(Base):
 
         flow(x)
             Method that is called when passing data to next PipeElement
+            
+        reset(x)
+            Resets the PipeElement
 
         attach_upstream(upstream)
             Attaches the given PipeElement as an upstream flow source
@@ -49,20 +59,23 @@ class PipeElement(Base):
             Attaches the given PipeElement as a downstream flow destination
 
         to_config()
-            Creates serializable PipeElement
+            Creates a dictionary of class variables
 
+        from_config()
+            Creates a PipeElement based on the given configuration
 
         """
-        self.downstream = kwargs.get("downstream")
-        self.upstream = kwargs.get("upstream")
-        self.requirements = kwargs.get("requirements")
+        self.downstream = kwargs.get("downstream", tuple())
+        self.upstream = kwargs.get("upstream", tuple())
+        self.requirements = kwargs.get("requirements", set())
+        self.func = kwargs.get("func", None)
 
         kwargs.pop("upstream", None)
         kwargs.pop("downstream", None)
-        kwargs.pop("requirements", set())
+        kwargs.pop("requirements", None)
+        kwargs.pop("func", None)
 
         self._executed = False
-        # self._output = None
 
         Base.__init__(self, **kwargs)
 
@@ -71,14 +84,17 @@ class PipeElement(Base):
         return self._executed
 
     def can_execute(self):
-        try:
-            for u in self.upstream:
-                if not u.executed():
-                    return False
-        except AttributeError:
-            if not self.upstream.executed():
+        """If this PipeElement can be executed
+        
+        Both upstream PipeElements as well as Requirements are checked for
+        their execution. If the those elements have not executed then this
+        PipeElement cannot execute
+        
+        """
+        for u in self.upstream:
+            if not u.executed():
                 return False
-
+        
         for r in self.requirements:
             if not r.upstream.executed():
                 return False
@@ -87,7 +103,7 @@ class PipeElement(Base):
 
     def transform(self, x):
         """Returns the given input"""
-        return x
+        return self.func(x)
 
     def flow(self, x):
         """Receives flow from upstream, transforms and flows data to downstream elements
@@ -124,6 +140,12 @@ class PipeElement(Base):
             pass
         self._executed = True
         return self.downstream, x
+        
+    def reset(self):
+        """Resets the PipeElement"""
+        self.input_columns, self.input_dimensions = None
+        self.output_columns, self.output_dimensions = None
+        self._executed = False
 
     def attach_upstream(self, upstream):
         """Attaches an upstream PipeElement
@@ -139,8 +161,8 @@ class PipeElement(Base):
             When an upstream element is already set
 
         """
-        if self.upstream is None:
-            self.upstream = upstream
+        if len(self.upstream) == 0:
+            self.upstream = (upstream,)
         else:
             raise AttributeError("Upstream object already set")
 
@@ -158,13 +180,13 @@ class PipeElement(Base):
             When a downstream element is already set
 
         """
-        if self.downstream is None:
-            self.downstream = downstream
+        if len(self.downstream) == 0:
+            self.downstream = (downstream,)
         else:
             raise AttributeError("Downstream object already set")
 
     def add_requirement(self, *requirements):
-        """
+        """TODO: add docstring
 
         :param requirements:
         :return:
@@ -180,10 +202,8 @@ class PipeElement(Base):
             Dictionary of class variables
 
         """
-        down = (
-            self.downstream if isinstance(self.downstream, list) else [self.downstream]
-        )
-        up = self.upstream if isinstance(self.upstream, list) else [self.upstream]
+        if not self.func is None:
+            warnings.warn("User defined function passed to 'func' argument cannot be saved", RuntimeWarning)
 
         attributes = self.__dict__.copy()
         for i in [
@@ -195,40 +215,49 @@ class PipeElement(Base):
             "output_columns",
             "_executed",
             "requirements",
+            "func"
         ]:
             attributes.pop(i, None)
 
-        if self.requirements is None:
-            req = [None]
-        else:
-            req = [r.to_config() for r in self.requirements]
-
         config = {
             "class_name": self.__class__.__name__,
-            "upstream": [None if element is None else element.id for element in up],
-            "downstream": [None if element is None else element.id for element in down],
+            "upstream": tuple([e.id for e in self.upstream]),
+            "downstream": tuple([e.id for e in self.downstream]),
             "attributes": attributes,
-            "requirements": req,
+            "requirements": set([r.to_config() for r in self.requirements]),
         }
         return config
 
     @staticmethod
-    def from_config(config, upstream=None, downstream=None):
-        def _verify_connection(elements, updown="upstream"):
-            if not isinstance(elements, list):
-                elements = [elements]
-            for element in elements:
-                if element.id not in config[updown]:
-                    raise KeyError(f"{element.id} not found in config[{updown}]")
-
+    def from_config(config, element_id=False):
+        """Creates a PipeElement based on the given configuration
+        
+        Arguments
+        ------------------
+        config : dict
+            The configuration dictionary generated from a PipeElement's
+            to_config() method
+            
+        element_id : bool
+            If the PipeElement's upstream and downstream arguments should
+            be set with their element.id instead of the actual object
+            
+        Returns
+        ------------------
+        PipeElement object
+        
+        """
         _cls = getattr(importlib.import_module("lyteflow"), config["class_name"])
-
-        if upstream is not None:
-            _verify_connection(upstream, "upstream")
-        if downstream is not None:
-            _verify_connection(downstream, "downstream")
-
-        return _cls(upstream=upstream, downstream=downstream, **config["attributes"])
+        if element_id:
+            return _cls(
+                upstream=config[upstream], 
+                downstream=config[downstream], 
+                **config["attributes"]
+            )
+        else:
+            return _cls(
+                **config["attributes"]
+            )
 
     def __call__(self, upstream):
         """Attaches the given PipeElement in both directions
@@ -254,7 +283,6 @@ class PipeElement(Base):
             return False
 		
 		
-
     def __repr__(self):
         return f"{self.__class__.__name__}: {self.name}::{self.id}"
 
