@@ -21,7 +21,6 @@ from lyteflow.kernels.base import PipeElement, Requirement
 from lyteflow.util import fetch_pipe_elements, connect_pipe_elements
 
 
-
 class PipeSystem(Base):
     def __init__(self, inlets, outlets, **kwargs):
         """The container system to hold the PipeElements

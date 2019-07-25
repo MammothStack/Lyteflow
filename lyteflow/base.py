@@ -2,22 +2,31 @@
 
 """
 
-# Standard library imports
-
-
-# Third party imports
-
-
-# Local application imports
-
 
 class Base:
+    """Abstract base class
+    
+    Base class for setting up uniform parameters. These parameters are used
+    for all pipe connecting elements as well as the whole PipeSystem.
+    
+    Attributes
+    ------------------    
+    input_dimensions : tuple
+        The dimension of the input
+
+    output_dimensions : tuple
+        The dimension of the output
+
+    input_columns : list
+        The column names of the input if the input is a pandas DataFrame
+
+    output_columns : list
+        The column names of the output if the output is a pandas DataFrame
+    
+    """
     def __init__(self, **kwargs):
-        """Abstract base class
-
-        Base class for setting up uniform parameters. These parameters are used
-        for all pipe connecting elements as well as the whole PipeSystem.
-
+        """Constructor for Base class
+        
         Arguments
         ------------------
         name : str (default: class name)
@@ -25,18 +34,6 @@ class Base:
 
         id : str or int
             Any string or number that is unique
-
-        input_dimensions : tuple
-            The dimension of the input
-
-        output_dimensions : tuple
-            The dimension of the output
-
-        input_columns : list
-            The column names of the input if the input is a pandas DataFrame
-
-        output_columns : list
-            The column names of the output if the output is a pandas DataFrame
 
         """
 

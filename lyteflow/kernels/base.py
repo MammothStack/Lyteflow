@@ -17,8 +17,63 @@ from lyteflow.base import Base
 
 
 class PipeElement(Base):
+    """A basic pipe element that is super class for all other pipe elements
+    
+    A PipeElement is the basic building block of all other data transformers.
+    It can be attached to other PipeElements either as an upstream or a
+    downstream element. Data always flows from upstream to downstream.
+    
+    Once the right stream configuration is set the PipeElement can be
+    executed or "flowed". When the PipeElement flows data transformations
+    are executed depending on the transform method. This method is overridden
+    when the PipeElement is subclassed. After execution the tranformed data
+    is returned including the downstream pipe elements to which this data
+    should go.
+    
+    PipeElements can have a Requirement based on another PipeElement. This
+    means if the transform function needs an argument based on another
+    PipeElement's attributes after execution, then the Requirement will
+    ensure that the right arguments and attributes are set. This also
+    affects the execution order of all the connected PipeElements, as
+    Requirements often take attributes that are only present after
+    execution.
+    
+    Methods
+    ------------------
+    can_execute()
+        If this PipeElement can be executed
+        
+    transform(x)
+        Method that is overridden in each sub class
+
+    flow(x)
+        Method that is called when passing data to next PipeElement
+        
+    reset(x)
+        Resets the PipeElement
+
+    attach_upstream(upstream)
+        Attaches the given PipeElement as an upstream flow source
+
+    attach_downstream(downstream)
+        Attaches the given PipeElement as a downstream flow destination
+        
+    add_requirement(*requirements)
+        Adds a requirement to the PipeElement
+    
+    validate_stream()
+        Validates that upstream, downstream, and requirements exist
+        
+    to_config()
+        Creates a dictionary of class variables
+
+    from_config()
+        Creates a PipeElement based on the given configuration
+        
+    """
+    
     def __init__(self, **kwargs):
-        """A basic pipe element that is super class for all other pipe elements
+        """Constructor for PipeElement
 
         Arguments
         ------------------
@@ -40,30 +95,7 @@ class PipeElement(Base):
 
         name : str
             The name that should be given to the PipeElement
-
-        Methods
-        ------------------
-        transform(x)
-            Method that is overridden in each sub class
-
-        flow(x)
-            Method that is called when passing data to next PipeElement
             
-        reset(x)
-            Resets the PipeElement
-
-        attach_upstream(upstream)
-            Attaches the given PipeElement as an upstream flow source
-
-        attach_downstream(downstream)
-            Attaches the given PipeElement as a downstream flow destination
-
-        to_config()
-            Creates a dictionary of class variables
-
-        from_config()
-            Creates a PipeElement based on the given configuration
-
         """
         self.downstream = kwargs.get("downstream", tuple())
         self.upstream = kwargs.get("upstream", tuple())
@@ -139,7 +171,7 @@ class PipeElement(Base):
         except AttributeError:
             pass
         self._executed = True
-        return self.downstream, x
+        return self.downstream[0], x
         
     def reset(self):
         """Resets the PipeElement"""
@@ -196,10 +228,13 @@ class PipeElement(Base):
             raise AttributeError("Only one Downstream object may be set")
 
     def add_requirement(self, *requirements):
-        """TODO: add docstring
+        """Adds a requirement to the PipeElement
 
-        :param requirements:
-        :return:
+        Arguments
+        ------------------
+        *requirements : Requirement
+            The requirement(s) that should be added
+            
         """
         self.requirements = set(list(self.requirements) + list(requirements))
 
@@ -312,22 +347,59 @@ class PipeElement(Base):
         else:
             return False
 		
-		
     def __repr__(self):
         return f"{self.__class__.__name__}: {self.name}::{self.id}"
 
 
 class Requirement:
-    """
-    # TODO: add docstring
+    """Data connection between PipeElements
+    
+    A Requirement can used to connect the meta data of one
+    PipeElement to the required arguments of another. This
+    means that certain results of a transformer can be
+    utilized by other PipeElements. This is contingent on
+    on the PipeElements having executed first so the meta
+    data is actually available.
+    
+    Methods
+    ------------------
+    to_config()
+        Converts the Requirement into configuration dictionary
+        
+    from_config(config, pipe_element)
+        Converts the configuration dictionary into a Requirement
+        
+        
     """
 
     def __init__(self, pipe_element, attribute, argument):
+        """Constructor for the Requirement class
+        
+        Arguments
+        ------------------
+        pipe_element : PipeElement
+            The PipeElement that has the required attribute
+            
+        attribute : str
+            The name of the required attribute
+        
+        argument : str
+            The name of the argument which should be replaced
+            by the attribute
+        
+        """
         self.pipe_element
         self.attribute = attribute
         self.argument = argument
 
     def to_config(self):
+        """Converts the Requirement into configuration dictionary
+        
+        Returns
+        ------------------
+        config : dict
+        
+        """
         return {
             "pipe_element": self.pipe_element.id, 
             "attribute": self.attribute, 
@@ -336,6 +408,22 @@ class Requirement:
     
     @staticmethod
     def from_config(cls, config, pipe_element):
+        """Converts the configuration dictionary into a Requirement
+        
+        Arguments
+        ------------------
+        config : dict
+            The config that should be converted to a Requirement
+            
+        pipe_element : PipeElement
+            The PipeElement that is specified in the config
+        
+        Returns
+        ------------------
+        r : Requirement
+            The Requirement based on the config data
+        
+        """
         if config["pipe_element"] == pipe_element.id:
             config.update({"pipe_element":pipe_element})
             return cls(**config)

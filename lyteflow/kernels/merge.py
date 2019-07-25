@@ -15,8 +15,10 @@ from lyteflow.kernels.base import PipeElement
 
 
 class _Merge(PipeElement):
+    """Merging multiple inputs into a single array"""
+    
     def __init__(self, axis=0, ignore_index=False, **kwargs):
-        """Merging multiple inputs into a single DataFrame
+        """Constructor
 
         Arguments
         ------------------
@@ -26,25 +28,12 @@ class _Merge(PipeElement):
         ignore_index : bool
             If the axis along which is concatenated is renamed
 
-        upstream : list of PipeBasicElement
-            The pipe element which is connected upstream, meaning the upstream
-            element will flow data to this element
-
-        downstream : PipeElement
-            The pipe element which is connected downstream, meaning this pipe
-            element will flow data to the downstream element
-
-        name : str
-            The name that should be given to the PipeElement
-
         """
         PipeElement.__init__(self, **kwargs)
-        self.upstream = []
-        self._reservoir = []
         self.axis = axis
         self.ignore_index = ignore_index
 
-    def flow(self, x):
+    def flow(self, *x):
         """Merge Elements through transform(x)
 
         Receives the flow x. In case not all upstream PipeElements
@@ -54,10 +43,12 @@ class _Merge(PipeElement):
 
         Arguments
         ------------------
-        x : numpy array/pandas DataFrame
+        *x : numpy array/pandas DataFrame
             The input flow that should be transformed and passed downstream
 
         """
+        for 
+        
         self._reservoir.append(x)
 
         if len(self._reservoir) == len(self.upstream):
@@ -129,7 +120,7 @@ class Concatenator(_Merge):
             except AttributeError:
                 return np.asarray(df)
 
-        try:
-            return pd.concat(x, axis=self.axis, ignore_index=self.ignore_index)
-        except TypeError:
-            return np.concatenate([_to_numpy(a) for a in x], axis=self.axis)
+    try:
+        return pd.concat(x, axis=self.axis, ignore_index=self.ignore_index)
+    except TypeError:
+        return np.concatenate([_to_numpy(a) for a in x], axis=self.axis)
