@@ -1,11 +1,13 @@
-"""# TODO: Add module title
+"""Module for splitting an input into multiple outputs
 
-# TODO: add module description
+This module contains all PipeElements that handle a single
+input, but multiple outputs. This occurs because the input
+is split along some axis into 2 or more objects or the same
+object is duplicated.
 
 """
 
 # Standard library imports
-
 
 # Third party imports
 import numpy as np

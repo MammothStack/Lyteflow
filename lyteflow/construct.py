@@ -22,8 +22,41 @@ from lyteflow.util import fetch_pipe_elements, connect_pipe_elements
 
 
 class PipeSystem(Base):
+    """The container system to hold the PipeElements
+    
+    A PipeSystem is responsible for the correct sequential
+    execution of all the connected PipeElements. The
+    PipeSystem needs to be initialized with the inlets
+    and outlets of the system. This is to ensure the
+    PipeSystem has a reference what the inputs and outputs
+    are, which is important in calculating the reachability
+    and execution sequence of the system.
+    
+    Methods
+    ------------------
+    flow(x)
+        Initiates the flow of inlet_data to the PipeSystem Inlets
+
+    validate_flow()
+        Ensures the flow data in the PipeSystem is valid
+
+    to_config()
+        Gives a configuration dictionary of class arguments
+
+    to_json(file_name)
+    
+    Class Methods
+    ------------------
+    from_config()
+        Creates PipeElement from config
+
+    from_json()
+        Creates PipeElement from json
+    
+    """
+    
     def __init__(self, inlets, outlets, **kwargs):
-        """The container system to hold the PipeElements
+        """Constructor of the PipeSystem
 
         Arguments
         ------------------
@@ -32,30 +65,6 @@ class PipeSystem(Base):
 
         outlets : list
             The PipeElements that are data outlets for the PipeSystem
-
-        name : str
-            The name of the PipeSystem
-
-        Methods
-        ------------------
-        flow(x)
-            Initiates the flow of inlet_data to the PipeSystem Inlets
-
-        validate_flow()
-            Ensures the flow data in the PipeSystem is valid
-
-        to_config()
-            Gives a configuration dictionary of class arguments
-
-        to_json(file_name)
-
-        Class Methods
-        ------------------
-        from_config()
-            Creates PipeElement from config
-
-        from_json()
-            Creates PipeElement from json
 
         """
         Base.__init__(self, **kwargs)
@@ -156,14 +165,26 @@ class PipeSystem(Base):
         ------------------
         file_name : str (default="pipesystem.json")
             The full file name where the json file should be written to
-
-        :return:
+            
         """
         with open(file_name, "w") as json_file:
             json.dump(self.to_config(), json_file, indent=4)
 
     @classmethod
     def from_config(cls, config):
+        """Creates a PipeSystem from Pipesystem configuration
+        
+        Arguments
+        ------------------
+        config : dict
+            The configuration that should be converted into a
+            PipeSystem
+            
+        Returns
+        ------------------
+        PipeSystem
+        
+        """
         inlets = [Inlet.from_config(c,element_id=True) for c in config["inlet"]]
         outlets = [Outlet.from_config(c,element_id=True) for c in config["outlet"]]
         elements = [PipeElement.from_config(c,element_id=True) for c in config["elements"]
@@ -178,10 +199,17 @@ class PipeSystem(Base):
 
     @classmethod
     def from_json(cls, json_file_name):
-        """Creates PipeElement from json
+        """Creates PipeSystem from json
 
-        :param json_file_name:
-        :return:
+        Arguments
+        ------------------
+        json_file_name : str
+            The location of the file name of the json file
+        
+        Returns
+        ------------------
+        PipeSystem
+        
         """
         file = open(json_file_name)
         json_str = file.read()
