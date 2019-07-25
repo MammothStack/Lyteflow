@@ -18,7 +18,7 @@ import queue
 import pandas as pd
 
 # Local application imports
-from lyteflow.kernels.base import PipeElement
+from lyteflow.kernels.base import PipeElement, Requirement
 
 def fetch_pipe_elements(pipesystem, ignore_inlets=False, ignore_outlets=False):
     def traverse(element):
@@ -40,6 +40,36 @@ def fetch_pipe_elements(pipesystem, ignore_inlets=False, ignore_outlets=False):
     for i in pipesystem.inlets:
         traverse(i)
     return elements
+    
+def connect_pipe_elements(elements):
+    for e in elements:
+        if len(e.downstream) == 0 and len(e.upstream) == 0:
+            raise AttributeError(
+                """All given elements need to have the 
+                correct id numbers as the inlets and outlets"""
+            )
+            
+    all = {e.id: e for e in list(elements)}
+    for e in list(elements):
+        for down in e.downstream:
+            try:
+                e.attach_downstream(all[down])
+            except TypeError:
+                pass
+                
+        for up in e.upstream:
+            try:
+                e.attach_upstream(all[up])
+            except TypeError:
+                pass
+                
+        requirements_actual = []
+        for r in e.requirements:
+            requirements_actual.append(Requirement.from_config(r, all[r.pipe_element]))
+            
+        e.requirements = set(requirements_actual)
+        
+        e.validate_stream()
     
 class PTGraph:
     def __init__(self, ps):

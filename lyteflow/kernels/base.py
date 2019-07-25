@@ -163,8 +163,13 @@ class PipeElement(Base):
         """
         if len(self.upstream) == 0:
             self.upstream = (upstream,)
+        elif len(self.upstream) == 1:
+            if self.upstream[0] == upstream.id:
+                self.upstream = (upstream,)
+            else:
+                raise AttributeError("Upstream object already set")
         else:
-            raise AttributeError("Upstream object already set")
+            raise AttributeError("Only one Upstream object may be set")
 
     def attach_downstream(self, downstream):
         """Attaches a downstream PipeElement
@@ -182,8 +187,13 @@ class PipeElement(Base):
         """
         if len(self.downstream) == 0:
             self.downstream = (downstream,)
+        elif len(self.downstream) == 1:
+            if self.downstream[0] == downstream.id:
+                self.downstream = (downstream,)
+            else:
+                raise AttributeError("Downstream object already set")
         else:
-            raise AttributeError("Downstream object already set")
+            raise AttributeError("Only one Downstream object may be set")
 
     def add_requirement(self, *requirements):
         """TODO: add docstring
@@ -193,6 +203,26 @@ class PipeElement(Base):
         """
         self.requirements = set(list(self.requirements) + list(requirements))
 
+    def validate_stream(self):
+        """Validates that upstream, downstream, and requirements exist
+        
+        Raises
+        ------------------
+        AttributeError
+            When the upstream or downstream elements are not
+            instances of PipeElements.
+        
+        """
+        for up in self.upstream:
+            if not isinstance(up, PipeElement):
+                raise AttributeError(f"{up} is not a PipeElement")
+        for down in self.downstream:
+            if not isinstance(down, PipeElement):
+                raise AttributeError(f"{down} is not a PipeElement")
+        for r in self.requirements:
+            if not isinstance(r, Requirement):
+                raise AttributeError(f"{r} is not a Requirement")
+                
     def to_config(self):
         """Creates a dictionary of class variables
 
@@ -303,6 +333,14 @@ class Requirement:
             "attribute": self.attribute, 
             "argument":self.argument
         }
+    
+    @staticmethod
+    def from_config(cls, config, pipe_element):
+        if config["pipe_element"] == pipe_element.id:
+            config.update({"pipe_element":pipe_element})
+            return cls(**config)
+        else:
+            raise ValueError(f"{pipe_element} is not equal to the given configuration")
 
     def __repr__(self):
         return (

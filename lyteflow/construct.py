@@ -17,8 +17,9 @@ import importlib
 # Local application imports
 from lyteflow.base import Base
 from lyteflow.kernels.io import Inlet, Outlet
-from lyteflow.kernels.base import PipeElement
-from lyteflow.util import fetch_pipe_elements
+from lyteflow.kernels.base import PipeElement, Requirement
+from lyteflow.util import fetch_pipe_elements, connect_pipe_elements
+
 
 
 class PipeSystem(Base):
@@ -141,14 +142,11 @@ class PipeSystem(Base):
         if not self.validate_flow():
             raise AttributeError("Invalid Pipesystems cannot be serialized")
         elements = fetch_pipe_elements(pipesystem=self, ignore_inlets=True, ignore_outlets=True)
-        elements = [e.to_config() for e in elements]
-        in_conf = [e.to_config() for e in self.inlets]
-        out_conf = [e.to_config() for e in self.outlets]
 
         return {
-            "inlets": in_conf,
-            "outlets": out_conf,
-            "elements": elements,
+            "inlets": [e.to_config() for e in self.inlets],
+            "outlets": [e.to_config() for e in self.outlets],
+            "elements": [e.to_config() for e in elements],
             "name": self.name,
         }
 
@@ -167,31 +165,15 @@ class PipeSystem(Base):
 
     @classmethod
     def from_config(cls, config):
-        created = {}
-
-        def traverse(conf):
-            if conf["upstream"] == [None] or set(conf["upstream"]).issubset(
-                set(created.keys())
-            ):
-                element = PipeElement.from_config(conf)
-                created.update({element.id: element})
-                if conf["upstream"] != [None]:
-                    for up in conf["upstream"]:
-                        element.attach_upstream(created[up])
-
-                if conf["downstream"] != [None]:
-                    for down in conf["downstream"]:
-                        for possible in config["elements"] + config["outlets"]:
-                            if down == possible["id"]:
-                                traverse(possible)
-                        element.attach_downstream(created[down])
-
-        for inlet_config in config["inlets"]:
-            traverse(inlet_config)
+        inlets = [Inlet.from_config(c,element_id=True) for c in config["inlet"]]
+        outlets = [Outlet.from_config(c,element_id=True) for c in config["outlet"]]
+        elements = [PipeElement.from_config(c,element_id=True) for c in config["elements"]
+        
+        connect_pipe_elements(inlets + outlets + elements)
 
         return cls(
-            inlets=[created[c["id"]] for c in config["inlets"]],
-            outlets=[created[c["id"]] for c in config["outlets"]],
+            inlets=inlets,
+            outlets=outlets,
             name=config["name"],
         )
 
