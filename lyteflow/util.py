@@ -16,9 +16,12 @@ import queue
 
 # Third party imports
 import pandas as pd
+import numpy as np
 
 # Local application imports
 from lyteflow.kernels.base import PipeElement, Requirement
+
+NODE_CREATION_COUNTER = 0
 
 def fetch_pipe_elements(pipesystem, ignore_inlets=False, ignore_outlets=False):
     def traverse(element):
@@ -80,39 +83,28 @@ class PTGraph:
         self.M_0 = set()
         self.F = set()
         self.T = set()
-        self.P = set()
+        self.P = []
         
         # Get all pipe elements
         all_elements = fetch_pipe_elements(ps)
-        for e in all_elements:
-            print(e)
-        
+                
         # Create transition relations for each pipe element
         petr = {e.id: _PipeElementTransitionRelation(e) for e in all_elements}
-        print(petr)
         
         for pt in petr.values():
             # For each upstream element create a singular node
-            try:
-                ups = [u for u in pt.pipe_element.upstream]
-            except AttributeError:
-                ups = [pt.pipe_element.upstream]
-            for up in ups:
+            for up in pt.pipe_element.upstream:
                 if up is not None:
-                    n = _Node()
+                    n = _Node(name=str(pt.pipe_element) + "-<-" + str(petr[up.id].pipe_element))
                     petr[up.id].transition.add_to_node(n)
                     pt.transition.add_from_node(n)
             
             # For each downstream element create singular node
-            try:
-                downs = [d for d in pt.pipe_element.downstream]
-            except AttributeError:
-                downs = [pt.pipe_element.downstream]
-            for down in downs:
-                if down is not None:
-                    n = _Node()
-                    petr[down.id].transition.add_from_node(n)
-                    pt.transition.add_to_node(n)
+            #for down in pt.pipe_element.downstream:
+            #    if down is not None:
+            #        n = _Node()
+            #        petr[down.id].transition.add_from_node(n)
+            #        pt.transition.add_to_node(n)
             
             # For each requirement connect transition to meta node
             for r in pt.pipe_element.requirements:
@@ -122,27 +114,32 @@ class PTGraph:
                 
         # Create upstream nodes for inlets and designate them as M_0
         for inlet in ps.inlets:
-            n = _Node(marked=True)
+            n = _Node(name=str(inlet), marked=True)
             petr[inlet.id].transition.add_from_node(n)
             self.M_0 = set(list(self.M_0) + [n])
             
         for outlet in ps.outlets:
-            n = _Node()
+            n = _Node(name=str(outlet))
             petr[outlet.id].transition.add_to_node(n)
             self.F = set(list(self.F) + [n])
             
         self.T = set([p.transition for p in petr.values()])
-        self.P = set([n for n in pt.transition.from_node + pt.transition.to_node for pt in petr.values()])
+        
+        for pt in petr.values():
+            for n in pt.transition.from_node + pt.transition.to_node:
+                self.P.append(n)
+        
+        self.P = set(self.P)
         
         self.W_neg = pd.DataFrame(columns=self.T, index=self.P)
         self.W_pos = pd.DataFrame(columns=self.T, index=self.P)
         
         for t in self.T:
-            self.W_neg.loc[t.from_node, t] = 1
-            self.W_pos.loc[t.to_node, t] = 1
+            self.W_neg.loc[t.from_node[0], t] = 1
+            self.W_pos.loc[t.to_node[0], t] = 1
         
         self.W_t = self.W_pos - self.W_neg
-        reset_graph()
+        self.reset_graph()
         
     def reset_graph(self):
         self.state = pd.Series(np.zeros((len(self.P))), index=self.P)
@@ -225,12 +222,19 @@ class ReachabilityGraph:
         return succesful_execution_sequences
     
 class _Node:
-    def __init__(self, marked=False, count=0):
+    def __init__(self, marked=False, name=None, count=None):
+        global NODE_CREATION_COUNTER
         self.marked = marked
-        self.name = "Node_" + str(count)
+        if count is None:
+            count = str(NODE_CREATION_COUNTER)
+            NODE_CREATION_COUNTER += 1
+        if name is None:
+            name = "Node"
+            
+        self.name = name + "_" + count
         
     def __repr__(self):
-        return f"{self.name}: marked={self.marked}"
+        return f"{self.name}"
 
         
 class _Transition:
@@ -249,7 +253,7 @@ class _PipeElementTransitionRelation:
     def __init__(self, pipe_element):
         self.pipe_element = pipe_element
         self.transition = _Transition()
-        self.meta_node = _Node()
+        self.meta_node = _Node(name=str(pipe_element) + "_meta_node")
         self.transition.add_to_node(self.meta_node)
 
         

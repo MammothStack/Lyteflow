@@ -187,7 +187,7 @@ class PipeSystem(Base):
         """
         inlets = [Inlet.from_config(c,element_id=True) for c in config["inlet"]]
         outlets = [Outlet.from_config(c,element_id=True) for c in config["outlet"]]
-        elements = [PipeElement.from_config(c,element_id=True) for c in config["elements"]
+        elements = [PipeElement.from_config(c,element_id=True) for c in config["elements"]]
         
         connect_pipe_elements(inlets + outlets + elements)
 
