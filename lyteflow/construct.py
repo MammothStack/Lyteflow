@@ -18,7 +18,7 @@ import importlib
 from lyteflow.base import Base
 from lyteflow.kernels.io import Inlet, Outlet
 from lyteflow.kernels.base import PipeElement, Requirement
-from lyteflow.util import fetch_pipe_elements, connect_pipe_elements
+from lyteflow.util import fetch_pipe_elements, connect_pipe_elements, PTGraph
 
 
 class PipeSystem(Base):
@@ -29,6 +29,11 @@ class PipeSystem(Base):
     the system. This is to ensure the PipeSystem has a reference what the inputs and
     outputs are, which is important in calculating the reachability and execution
     sequence of the system.
+
+    Attributes
+    ------------------
+    execution_sequence : list
+        The list of PipeElements ordered in their recommended execution
     
     Methods
     ------------------
@@ -77,8 +82,10 @@ class PipeSystem(Base):
 
         self.inlets = inlets
         self.outlets = outlets
+        self.execution_sequence = PTGraph.get_execution_sequence_(self)
 
     def flow(self, inlet_data):
+        # TODO: Change flow structure
         """Initiates the flow of inlet_data to the PipeSystem Inlets
 
         Arguments
@@ -128,7 +135,7 @@ class PipeSystem(Base):
             If the PipeSystem's flow is valid
 
         """
-        pass
+        pt_graph = PTGraph(ps=self)
 
     def to_config(self):
         """Gives a configuration dictionary of class arguments

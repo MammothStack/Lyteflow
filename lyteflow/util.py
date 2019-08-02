@@ -249,7 +249,7 @@ class PTGraph:
             data = tuple(self._state.tolist())
             executable_transitions = self._get_executable_transitions()
             if len(executable_transitions) == 0:
-                return None
+                return
             else:
                 for transition in executable_transitions:
                     q.put((data, transition, hist))
@@ -262,9 +262,37 @@ class PTGraph:
         execution_sequence : list
             A ordered list of PipeElements in execution order
 
+        Raises
+        ------------------
+        AttributeError
+            When the given PipeSystem does not produce a valid Execution sequence
+
         """
         transitions = self._calculate_reachability()
-        return [transition.pipe_element for transition in transitions]
+        if transitions is None:
+            raise AttributeError(
+                f"Given PipeSystem does not produce an execution sequence"
+            )
+        else:
+            return [transition.pipe_element for transition in transitions]
+
+    @classmethod
+    def get_execution_sequence_(cls, pipe_system):
+        """Creates a PTGraph and returns the execution sequence
+
+        Arguments
+        ------------------
+        pipe_system : PipeSystem
+            The PipeSystem for which a execution sequence should be calculated
+
+        Returns
+        ------------------
+        execution_sequence : list
+            A ordered list of PipeElements in execution order
+
+        """
+        pt = cls(pipe_system)
+        return pt.get_execution_sequence()
 
 
 class _Node:
