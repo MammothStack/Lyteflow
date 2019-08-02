@@ -92,9 +92,6 @@ class PipeElement(Base):
         func : function
             Transformer function used to transform the input. When this argument
             cannot be saved in the PipeElement.to_config() method
-
-        name : str
-            The name that should be given to the PipeElement
             
         """
         self.downstream = kwargs.get("downstream", tuple())
@@ -385,12 +382,10 @@ class PipeElement(Base):
 class Requirement:
     """Data connection between PipeElements
     
-    A Requirement can used to connect the meta data of one
-    PipeElement to the required arguments of another. This
-    means that certain results of a transformer can be
-    utilized by other PipeElements. This is contingent on
-    on the PipeElements having executed first so the meta
-    data is actually available.
+    A Requirement can used to connect the meta data of one PipeElement to the required
+    arguments of another. This means that certain results of a transformer can be
+    utilized by other PipeElements. This is contingent on the PipeElements having
+    executed first so the meta data is actually available.
     
     Methods
     ------------------

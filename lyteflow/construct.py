@@ -24,13 +24,11 @@ from lyteflow.util import fetch_pipe_elements, connect_pipe_elements
 class PipeSystem(Base):
     """The container system to hold the PipeElements
     
-    A PipeSystem is responsible for the correct sequential
-    execution of all the connected PipeElements. The
-    PipeSystem needs to be initialized with the inlets
-    and outlets of the system. This is to ensure the
-    PipeSystem has a reference what the inputs and outputs
-    are, which is important in calculating the reachability
-    and execution sequence of the system.
+    A PipeSystem is responsible for the correct sequential execution of all the connected
+    PipeElements. The PipeSystem needs to be initialized with the inlets and outlets of
+    the system. This is to ensure the PipeSystem has a reference what the inputs and
+    outputs are, which is important in calculating the reachability and execution
+    sequence of the system.
     
     Methods
     ------------------

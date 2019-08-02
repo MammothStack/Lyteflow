@@ -23,6 +23,8 @@ from lyteflow.kernels.base import PipeElement, Requirement
 
 
 def fetch_pipe_elements(pipesystem, ignore_inlets=False, ignore_outlets=False):
+    """Iterates through the PipeSystem and returns a list of all PipeElements"""
+
     def traverse(element):
         if element is None:
             return
@@ -71,18 +73,65 @@ def connect_pipe_elements(elements):
 
 
 class PTGraph:
+    """Place Transition Graph built from PipeSystem to calculate execution
+
+    The PTGraph class exists solely to calculate the execution sequence of the
+    PipeElements in the given PipeSystem. In order to do that it creates a
+    place-transition graph which simulates the execution of the PipeSystem. Since the
+    PipeSystem's PipeElements can be connected non-sequentially it is possible to have
+    multiple execution paths (or none). Calculating a valid execution path is needed
+    for the successful execution of the PipeSystem.
+
+    Methods
+    ------------------
+    get_execution_sequence()
+        Gives an execution that is successful in reaching the end state
+
+    Attributes
+    ------------------
+    W_neg : pd.DataFrame
+        Transition matrix of preset nodes
+
+    W_pos : pd.DataFrame
+        Transition matrix of postset nodes
+
+    W_t : pd.DataFrame
+        Transition matrix of delta nodes when W_pos - W_neg
+
+    """
+
     def __init__(self, ps):
-        self.M_0 = set()
-        self.F = set()
-        self.T = set()
-        self.P = set()
-        self.state = None
+        """Constructor of PTGraph
+
+        The conversion of the PipeSystem is immediately started in the constructor
+
+        Arguments
+        ------------------
+        ps : PipeSystem
+            The PipeSystem that should be converted into a PTGraph and analyzed for
+            execution sequences
+
+        """
+        self._M_0 = set()
+        self._F = set()
+        self._T = set()
+        self._P = set()
+        self._state = None
         self.W_neg = None
         self.W_pos = None
         self.W_t = None
         self._convert(ps)
 
     def _convert(self, ps):
+        """Converts the given PipeSystem to a PTGraph
+
+        Arguments
+        ------------------
+        ps : PipeSystem
+            The PipeSystem that should be converted
+
+        """
+
         # Get all pipe elements
         all_elements = fetch_pipe_elements(ps)
 
@@ -95,13 +144,18 @@ class PTGraph:
             for pipe_element in all_elements
         }
 
+        # Iterate transitions and create nodes and connect to other nodes
         for transition in transitions.values():
+
+            # Create nodes for every unique upstream element and connect them
             for up in set(transition.pipe_element.upstream):
                 n = _Node(
                     name=transitions[up.id].pipe_element.name
                     + "->-"
                     + str(transition.pipe_element.name)
                 )
+                # Connects the node between the transition of the up element and the
+                # current transition
                 transitions[up.id].add_to_node(n)
                 transition.add_from_node(n)
 
@@ -111,99 +165,110 @@ class PTGraph:
                 transition.add_from_node(n)
                 transition.add_to_node(n)
 
-        # Create upstream nodes for inlets and designate them as M_0
+        # Create upstream nodes for inlets and designate them as _M_0
         for inlet in ps.inlets:
-            n = _Node(name=inlet.name, marked=True)
+            n = _Node(name=inlet.name)
             transitions[inlet.id].add_from_node(n)
-            self.M_0 = set(list(self.M_0) + [n])
+            self._M_0 = set(list(self._M_0) + [n])
 
+        # Create downstream nodes for outlets and desginate them as _F
         for outlet in ps.outlets:
             n = _Node(name=outlet.name)
             transitions[outlet.id].add_to_node(n)
-            self.F = set(list(self.F) + [n])
+            self._F = set(list(self._F) + [n])
 
-        self.T = set(transitions.values())
-        self.P = set(np.concatenate([t.from_node + t.to_node for t in self.T]))
+        # Set the transitions and places and calculate the transitions matrices
+        self._T = set(transitions.values())
+        self._P = set(np.concatenate([t.from_node + t.to_node for t in self._T]))
         self._set_transition_matrix()
-        # self.reset_graph()
 
     def _set_transition_matrix(self):
+        """Creates the transition matrices
+
+        Creates the W_neg, W_pos, and W_t attributes. The W_neg and W_pos are created
+        by creating a matrix that has dimensions (places, transitions). The W_neg
+        matrix is then populated by iterating through every transition and setting
+        their nodes that lead to them in the table as 1. This occurs for W_pos,
+        but nodes that lead from the transition are marked. The W_t matrix is created
+        by W_pos - W_neg
+
+        """
         self.W_neg = pd.DataFrame(
-            np.zeros((len(self.P), len(self.T))), columns=self.T, index=self.P
+            np.zeros((len(self._P), len(self._T))), columns=self._T, index=self._P
         )
         self.W_pos = pd.DataFrame(
-            np.zeros((len(self.P), len(self.T))), columns=self.T, index=self.P
+            np.zeros((len(self._P), len(self._T))), columns=self._T, index=self._P
         )
 
-        for t in self.T:
+        for t in self._T:
             self.W_neg.loc[t.from_node, t] = 1
             self.W_pos.loc[t.to_node, t] = 1
 
         self.W_t = self.W_pos - self.W_neg
 
     def _can_transition_execute(self, transition):
-        return (self.state.loc[self.W_neg[transition] == 1] == 1).all()
+        return (self._state.loc[self.W_neg[transition] == 1] == 1).all()
 
-    def reset_to_starting_configuration(self):
-        self.state = pd.Series(np.zeros((len(self.P))), index=self.P)
-        self.state.loc[self.M_0] = 1
+    def _reset_to_starting_configuration(self):
+        self._state = pd.Series(np.zeros((len(self._P))), index=self._P)
+        self._state.loc[self._M_0] = 1
 
-    def get_executable_transitions(self):
+    def _get_executable_transitions(self):
         return self.W_neg.loc[
             :, self.W_neg.apply(lambda x: self._can_transition_execute(x.name))
         ].columns
 
-    def execute_transition(self, transition):
-        if transition not in self.T:
+    def _execute_transition(self, transition):
+        if transition not in self._T:
             raise ValueError(f"{transition} not found in P/T Graph")
 
         if self._can_transition_execute(transition):
-            self.state = self.state + self.W_t.loc[:, transition]
+            self._state = self._state + self.W_t.loc[:, transition]
         else:
             raise AttributeError(f"{transition} cannot execute")
 
-    def set_state(self, data):
-        self.state = pd.Series(data, index=self.P)
-
-    def get_hashable_state(self):
-        return tuple(self.state.tolist())
-
-    def end_state(self):
-        return (self.state.loc[self.F] == 1.0).all()
-
-
-class ReachabilityGraph:
-    def __init__(self, pt_graph):
-        self.pt_graph = pt_graph
-
-    def get_execution_sequence(self):
-        transitions = self._calculate_reachability()
-        return [transition.pipe_element for transition in transitions]
-
     def _calculate_reachability(self):
+        # Create last in, first out queue
         q = queue.LifoQueue()
-        self.pt_graph.reset_to_starting_configuration()
-        data = self.pt_graph.get_hashable_state()
-        for transition in self.pt_graph.get_executable_transitions():
-            # print(transition)
+        self._reset_to_starting_configuration()
+
+        # Get the state as a tuple
+        data = tuple(self._state.tolist())
+        # For every executable transition add the state, transition and history to queue
+        for transition in self._get_executable_transitions():
             q.put((data, transition, []))
 
         while q.qsize() > 0:
             data, transition, hist = q.get()
-            self.pt_graph.set_state(data)
-            self.pt_graph.execute_transition(transition)
+            self._state = pd.Series(data, index=self._P)
+            self._execute_transition(transition)
             hist.append(transition)
-            if self.pt_graph.end_state():
+            if (self._state.loc[self._F] == 1.0).all():
                 return hist
 
-            data = self.pt_graph.get_hashable_state()
-            for transition in self.pt_graph.get_executable_transitions():
-                q.put((data, transition, hist))
+            data = tuple(self._state.tolist())
+            executable_transitions = self._get_executable_transitions()
+            if len(executable_transitions) == 0:
+                return None
+            else:
+                for transition in executable_transitions:
+                    q.put((data, transition, hist))
+
+    def get_execution_sequence(self):
+        """Calculates and returns a execution that satisfies the end state
+
+        Returns
+        ------------------
+        execution_sequence : list
+            A ordered list of PipeElements in execution order
+
+        """
+        transitions = self._calculate_reachability()
+        return [transition.pipe_element for transition in transitions]
 
 
 class _Node:
-    def __init__(self, marked=False, name="Node"):
-        self.marked = marked
+    def __init__(self, name="Node"):
         self.name = name
 
     def __repr__(self):
