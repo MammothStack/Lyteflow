@@ -71,7 +71,7 @@ class PipeElement(Base):
         Creates a PipeElement based on the given configuration
         
     """
-    
+
     def __init__(self, **kwargs):
         """Constructor for PipeElement
 
@@ -85,7 +85,7 @@ class PipeElement(Base):
             The pipe element which is connected downstream, meaning this pipe
             element will flow data to the downstream element
 
-        requirements : Requirment/set of Requirement
+        requirements : Requirement/set of Requirement
             The Requirements of this PipeElement based on the values of other
             PipeElements
             
@@ -101,11 +101,13 @@ class PipeElement(Base):
         self.upstream = kwargs.get("upstream", tuple())
         self.requirements = kwargs.get("requirements", set())
         self.func = kwargs.get("func", None)
+        self._unconfigured_requirements = kwargs.get("unconfigured_requirements")
 
         kwargs.pop("upstream", None)
         kwargs.pop("downstream", None)
         kwargs.pop("requirements", None)
         kwargs.pop("func", None)
+        kwargs.pop("unconfigured_requirements", None)
 
         self._executed = False
 
@@ -126,7 +128,7 @@ class PipeElement(Base):
         for u in self.upstream:
             if not u.executed():
                 return False
-        
+
         for r in self.requirements:
             if not r.upstream.executed():
                 return False
@@ -172,11 +174,11 @@ class PipeElement(Base):
             pass
         self._executed = True
         return self.downstream[0], x
-        
+
     def reset(self):
         """Resets the PipeElement"""
-        self.input_columns, self.input_dimensions = None
-        self.output_columns, self.output_dimensions = None
+        self.input_columns, self.input_dimensions = None, None
+        self.output_columns, self.output_dimensions = None, None
         self._executed = False
 
     def attach_upstream(self, upstream):
@@ -236,7 +238,31 @@ class PipeElement(Base):
             The requirement(s) that should be added
             
         """
-        self.requirements = set(list(self.requirements) + list(requirements))
+        self.requirements = self.requirements.union(set(requirements))
+
+    def configure_requirements(self, *pipe_element):
+        """Configures all unconfigured requirements after creation from config
+
+        When a PipeElement is created through from_config method, the requirements that
+        come from that configuration dictionary are also just configuration
+        dictionaries, and must therefore also be converted back into the actual
+        Requirement object. The config dictionaries are iterated through and matched up
+        with the given PipeElements in order to match their ID number. Through this
+        method the proper object reference are re-established.
+
+        Arguments
+        ------------------
+        *pipe_element : PipeElement
+            The PipeElement(s) that is referenced by ID in the configuration file of
+            each unconfigured Requirement
+
+        """
+
+        for r in self._unconfigured_requirements:
+            for e in pipe_element:
+                if r["pipe_element"] == e.id:
+                    self.add_requirement(Requirement.from_config(r, e))
+                    self._unconfigured_requirements.remove(r)
 
     def validate_stream(self):
         """Validates that upstream, downstream, and requirements exist
@@ -257,7 +283,14 @@ class PipeElement(Base):
         for r in self.requirements:
             if not isinstance(r, Requirement):
                 raise AttributeError(f"{r} is not a Requirement")
-                
+
+        if len(self._unconfigured_requirements) != 0:
+            raise AttributeError(
+                f"{len(self._unconfigured_requirements)} unconfigured "
+                f"requirements need to be configured before stream is "
+                f"valid"
+            )
+
     def to_config(self):
         """Creates a dictionary of class variables
 
@@ -267,8 +300,11 @@ class PipeElement(Base):
             Dictionary of class variables
 
         """
-        if not self.func is None:
-            warnings.warn("User defined function passed to 'func' argument cannot be saved", RuntimeWarning)
+        if self.func is not None:
+            warnings.warn(
+                "User defined function passed to 'func' argument cannot be saved",
+                RuntimeWarning,
+            )
 
         attributes = self.__dict__.copy()
         for i in [
@@ -280,7 +316,7 @@ class PipeElement(Base):
             "output_columns",
             "_executed",
             "requirements",
-            "func"
+            "func",
         ]:
             attributes.pop(i, None)
 
@@ -289,7 +325,9 @@ class PipeElement(Base):
             "upstream": tuple([e.id for e in self.upstream]),
             "downstream": tuple([e.id for e in self.downstream]),
             "attributes": attributes,
-            "requirements": set([r.to_config() for r in self.requirements]),
+            "unconfigured_requirements": set(
+                [r.to_config() for r in self.requirements]
+            ),
         }
         return config
 
@@ -315,14 +353,13 @@ class PipeElement(Base):
         _cls = getattr(importlib.import_module("lyteflow"), config["class_name"])
         if element_id:
             return _cls(
-                upstream=config[upstream], 
-                downstream=config[downstream], 
-                **config["attributes"]
+                upstream=config["upstream"],
+                downstream=config["downstream"],
+                unconfigured_requirements=config["unconfigured_requirements"]
+                ** config["attributes"],
             )
         else:
-            return _cls(
-                **config["attributes"]
-            )
+            return _cls(**config["attributes"])
 
     def __call__(self, upstream):
         """Attaches the given PipeElement in both directions
@@ -341,12 +378,6 @@ class PipeElement(Base):
         upstream.attach_downstream(self)
         return self
 
-    def __eq__(self, other):
-        if isinstance(other, PipeElement):
-            return self.__class__ == other.__class__ and self.to_config() == other.to_config()
-        else:
-            return False
-		
     def __repr__(self):
         return f"{self.__class__.__name__}: {self.name}::{self.id}"
 
@@ -388,7 +419,7 @@ class Requirement:
             by the attribute
         
         """
-        self.pipe_element
+        self.pipe_element = pipe_element
         self.attribute = attribute
         self.argument = argument
 
@@ -401,12 +432,12 @@ class Requirement:
         
         """
         return {
-            "pipe_element": self.pipe_element.id, 
-            "attribute": self.attribute, 
-            "argument":self.argument
+            "pipe_element": self.pipe_element.id,
+            "attribute": self.attribute,
+            "argument": self.argument,
         }
-    
-    @staticmethod
+
+    @classmethod
     def from_config(cls, config, pipe_element):
         """Converts the configuration dictionary into a Requirement
         
@@ -422,10 +453,10 @@ class Requirement:
         ------------------
         r : Requirement
             The Requirement based on the config data
-        
+
         """
         if config["pipe_element"] == pipe_element.id:
-            config.update({"pipe_element":pipe_element})
+            config.update({"pipe_element": pipe_element})
             return cls(**config)
         else:
             raise ValueError(f"{pipe_element} is not equal to the given configuration")
@@ -437,12 +468,12 @@ class Requirement:
         )
 
     def __eq__(self, other):
-        return(
-			self.__class__ == other.__class__
-			and self.pipe_element.id == other.pipe_element.id
-			and self.attribute == other.attribute
-			and self.argument == other.argument
-		)
-		
+        return (
+            self.__class__ == other.__class__
+            and self.pipe_element.id == other.pipe_element.id
+            and self.attribute == other.attribute
+            and self.argument == other.argument
+        )
+
     def __hash__(self):
-	    return hash((self.pipe_element.id, self.attribute, self.argument))
+        return hash((self.pipe_element.id, self.attribute, self.argument))

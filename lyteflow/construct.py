@@ -54,7 +54,7 @@ class PipeSystem(Base):
         Creates PipeElement from json
     
     """
-    
+
     def __init__(self, inlets, outlets, **kwargs):
         """Constructor of the PipeSystem
 
@@ -113,7 +113,7 @@ class PipeSystem(Base):
 
         for i in range(len(self.inlets)):
             self.inlets[i].flow(inlet_data[i])
-            
+
         self.input_dimensions = [x.input_dimensions for x in self.inlets]
         self.input_columns = [x.input_columns for x in self.inlets]
         self.output_dimensions = [x.output_dimensions for x in self.outlets]
@@ -149,7 +149,9 @@ class PipeSystem(Base):
 
         if not self.validate_flow():
             raise AttributeError("Invalid Pipesystems cannot be serialized")
-        elements = fetch_pipe_elements(pipesystem=self, ignore_inlets=True, ignore_outlets=True)
+        elements = fetch_pipe_elements(
+            pipesystem=self, ignore_inlets=True, ignore_outlets=True
+        )
 
         return {
             "inlets": [e.to_config() for e in self.inlets],
@@ -185,17 +187,15 @@ class PipeSystem(Base):
         PipeSystem
         
         """
-        inlets = [Inlet.from_config(c,element_id=True) for c in config["inlet"]]
-        outlets = [Outlet.from_config(c,element_id=True) for c in config["outlet"]]
-        elements = [PipeElement.from_config(c,element_id=True) for c in config["elements"]]
-        
+        inlets = [Inlet.from_config(c, element_id=True) for c in config["inlet"]]
+        outlets = [Outlet.from_config(c, element_id=True) for c in config["outlet"]]
+        elements = [
+            PipeElement.from_config(c, element_id=True) for c in config["elements"]
+        ]
+
         connect_pipe_elements(inlets + outlets + elements)
 
-        return cls(
-            inlets=inlets,
-            outlets=outlets,
-            name=config["name"],
-        )
+        return cls(inlets=inlets, outlets=outlets, name=config["name"])
 
     @classmethod
     def from_json(cls, json_file_name):

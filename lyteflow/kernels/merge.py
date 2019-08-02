@@ -74,9 +74,9 @@ class _Merge(PipeElement):
         ordered_reservoir = []
         
         for up in self.upstream:
-            for input in x:
-                if up == input[0]:
-                    ordered_reservoir.append(input[1])
+            for i in x:
+                if up == i[0]:
+                    ordered_reservoir.append(i[1])
                     
         if len(ordered_reservoir) != len(self.upstream):
             raise ValueError("Given data could not be fitted to upstream elements")
