@@ -1,6 +1,6 @@
 from lyteflow.kernels import *
 from lyteflow.construct import PipeSystem
-from lyteflow.util import PTGraph, ReachabilityGraph
+from lyteflow.util import PTGraph
 import pandas as pd
 import numpy as np
 
@@ -40,5 +40,3 @@ ps_complex = make_complex_pipe_system()
 ps_simple = make_simple_pipesystem()
 
 pt = PTGraph(ps_complex)
-
-rg = ReachabilityGraph(pt)
