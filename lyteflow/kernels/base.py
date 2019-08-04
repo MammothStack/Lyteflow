@@ -158,8 +158,8 @@ class PipeElement(Base):
 
         Returns
         ------------------
-        x : list
-            A list of FlowData which is a the output of the data transformation that
+        x : FlowData
+            A tuple of FlowData which is a the output of the data transformation that
             should be passed downstream
 
         Raises
@@ -177,7 +177,7 @@ class PipeElement(Base):
         self._flow_postset_check(flow_data)
         self._executed = True
 
-        return [flow_data]
+        return (flow_data,)
 
     def reset(self):
         """Resets the PipeElement"""

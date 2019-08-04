@@ -84,7 +84,7 @@ class Outlet(PipeElement):
 
     A subclass of PipeElement dealing with the end of the PipeElement.
     All functions of the super class are maintained except for
-    noteably the ability to attach a PipeElement downstream of
+    notably the ability to attach a PipeElement downstream of
     this Outlet. The method attach_downstream is overridden to
     achieve this.
 
@@ -97,6 +97,7 @@ class Outlet(PipeElement):
 
     def __init__(self, **kwargs):
         PipeElement.__init__(self, **kwargs)
+        self.downstream = (None,)
 
     def attach_downstream(self, downstream):
         """Throws an error if anything other than None is attached"""

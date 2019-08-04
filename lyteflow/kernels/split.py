@@ -71,8 +71,8 @@ class _Split(PipeElement):
 
         Returns
         ------------------
-        *x : list
-            A list of FlowData which is a the output of the data transformation that
+        *x : FlowData
+            A tuple of FlowData which is a the output of the data transformation that
             should be passed downstream
 
         Raises
@@ -97,9 +97,9 @@ class _Split(PipeElement):
 
         if self.n_output is None:
             matched = zip([y for y in transformed_x], [d for d in self.downstream])
-            return [FlowData(self, z[0], z[1]) for z in matched]
+            return tuple(FlowData(self, z[0], z[1]) for z in matched)
         else:
-            return [FlowData(self, y, self.downstream[0]) for y in transformed_x]
+            return tuple(FlowData(self, y, self.downstream[0]) for y in transformed_x)
 
     def _flow_postset_check(self, *x):
         """Checks the postset configuration and data

@@ -78,8 +78,8 @@ class _Merge(PipeElement):
 
         Returns
         ------------------
-        x : list
-            A list of FlowData which is a the output of the data transformation that
+        x : FlowData
+            A tuple of FlowData which is a the output of the data transformation that
             should be passed downstream
 
         Raises
@@ -97,7 +97,7 @@ class _Merge(PipeElement):
         self._executed = True
         self._flow_postset_check(flow_data)
 
-        return [flow_data]
+        return (flow_data,)
 
     def attach_upstream(self, *upstream):
         """Attaches multiple upstream PipeElements in sequence

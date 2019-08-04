@@ -16,7 +16,7 @@ import json
 # Local application imports
 from lyteflow.base import Base
 from lyteflow.kernels.io import Inlet, Outlet
-from lyteflow.kernels.base import PipeElement, Requirement
+from lyteflow.kernels.base import PipeElement, FlowData
 from lyteflow.util import fetch_pipe_elements, PTGraph
 
 
@@ -83,14 +83,13 @@ class PipeSystem(Base):
         self.outlets = outlets
         self.execution_sequence = PTGraph.get_execution_sequence_(self)
 
-    def flow(self, inlet_data):
-        # TODO: Change flow structure
+    def flow(self, *inlet_data):
         """Initiates the flow of inlet_data to the PipeSystem Inlets
 
         Arguments
         ------------------
-        inlet_data : list (n sized for n Input PipeElements)
-            A list of the data that should be passed to the Inlet PipeElements.
+        *inlet_data : numpy.array/pandas.DataFrame
+            A tuple of the data that should be passed to the Inlet PipeElements.
             Data should be given in order of the Inlet PipeElements specified during
             instantiation
 
@@ -101,26 +100,44 @@ class PipeSystem(Base):
 
         Raises
         ------------------
-        AttributeError
+        ValueError
             When the PipeSystem's PipeElements are not set up correctly
 
         """
+
+        if self.execution_sequence is None:
+            raise AttributeError(f"No execution sequence possible")
 
         if len(self.inlets) != len(inlet_data):
             raise ValueError(
                 f"Inlet data requires {len(self.inlets)} source(s), "
                 f"but only {len(inlet_data)} were given"
             )
-        # data_hold =
+        all_elements = fetch_pipe_elements(self)
+        data_hold = {e: [] for e in all_elements}
+        output = {}
+
         for i in range(len(self.inlets)):
-            self.inlets[i].flow(inlet_data[i])
+            data_hold[self.inlets[i]].append(
+                FlowData(
+                    from_element=None, data=inlet_data[i], to_element=self.inlets[i]
+                )
+            )
+
+        for pipe_element in self.execution_sequence:
+            flow_data = pipe_element.flow(*data_hold[pipe_element])
+            for fd in flow_data:
+                if fd.to_element is not None:
+                    data_hold[fd.to_element].append(fd)
+                else:
+                    output.update({fd.from_element: fd})
 
         self.input_dimensions = [x.input_dimensions for x in self.inlets]
         self.input_columns = [x.input_columns for x in self.inlets]
         self.output_dimensions = [x.output_dimensions for x in self.outlets]
         self.output_columns = [x.output_columns for x in self.outlets]
 
-        return [outlet.output for outlet in self.outlets]
+        return [output[outlet].data for outlet in self.outlets]
 
     def to_config(self):
         """Gives a configuration dictionary of class arguments
