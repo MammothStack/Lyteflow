@@ -184,9 +184,6 @@ class PipeSystem(Base):
 
         for e in _all:
             e.reconfigure(*_all)
-            e.validate_stream()
-
-        # connect_pipe_elements(inlets + outlets + elements)
 
         return cls(inlets=inlets, outlets=outlets, name=config["name"])
 
