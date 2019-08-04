@@ -107,15 +107,12 @@ class PipeSystem(Base):
 
         """
 
-        if not self.validate_flow():
-            raise AttributeError("Flow Validation Error")
-
         if len(self.inlets) != len(inlet_data):
             raise ValueError(
                 f"Inlet data requires {len(self.inlets)} source(s), "
                 f"but only {len(inlet_data)} were given"
             )
-
+        # data_hold =
         for i in range(len(self.inlets)):
             self.inlets[i].flow(inlet_data[i])
 
@@ -125,17 +122,6 @@ class PipeSystem(Base):
         self.output_columns = [x.output_columns for x in self.outlets]
 
         return [outlet.output for outlet in self.outlets]
-
-    def validate_flow(self):
-        """Ensures the flow data in the PipeSystem is valid
-
-        Returns
-        ------------------
-        bool
-            If the PipeSystem's flow is valid
-
-        """
-        pt_graph = PTGraph(ps=self)
 
     def to_config(self):
         """Gives a configuration dictionary of class arguments
@@ -152,8 +138,6 @@ class PipeSystem(Base):
 
         """
 
-        if not self.validate_flow():
-            raise AttributeError("Invalid Pipesystems cannot be serialized")
         elements = fetch_pipe_elements(
             pipesystem=self, ignore_inlets=True, ignore_outlets=True
         )
@@ -192,13 +176,18 @@ class PipeSystem(Base):
         PipeSystem
         
         """
-        inlets = [Inlet.from_config(c, element_id=True) for c in config["inlet"]]
-        outlets = [Outlet.from_config(c, element_id=True) for c in config["outlet"]]
+        inlets = [Inlet.from_config(c, element_id=True) for c in config["inlets"]]
+        outlets = [Outlet.from_config(c, element_id=True) for c in config["outlets"]]
         elements = [
             PipeElement.from_config(c, element_id=True) for c in config["elements"]
         ]
+        _all = inlets + outlets + elements
 
-        connect_pipe_elements(inlets + outlets + elements)
+        for e in _all:
+            e.reconfigure(*_all)
+            e.validate_stream()
+
+        # connect_pipe_elements(inlets + outlets + elements)
 
         return cls(inlets=inlets, outlets=outlets, name=config["name"])
 

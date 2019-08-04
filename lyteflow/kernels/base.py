@@ -26,7 +26,7 @@ class PipeElement(Base):
     Once the right stream configuration is set the PipeElement can be
     executed or "flowed". When the PipeElement flows data transformations
     are executed depending on the transform method. This method is overridden
-    when the PipeElement is subclassed. After execution the tranformed data
+    when the PipeElement is subclassed. After execution the transformed data
     is returned including the downstream pipe elements to which this data
     should go.
     
@@ -98,13 +98,17 @@ class PipeElement(Base):
         self.upstream = kwargs.get("upstream", tuple())
         self.requirements = kwargs.get("requirements", set())
         self.func = kwargs.get("func", None)
-        self._unconfigured_requirements = kwargs.get("unconfigured_requirements")
+        self._unconfigured_downstream = kwargs.get("unconfigured_downstream", None)
+        self._unconfigured_upstream = kwargs.get("unconfigured_upstream", None)
+        self._unconfigured_requirements = kwargs.get("unconfigured_requirements", None)
 
         kwargs.pop("upstream", None)
         kwargs.pop("downstream", None)
         kwargs.pop("requirements", None)
         kwargs.pop("func", None)
         kwargs.pop("unconfigured_requirements", None)
+        kwargs.pop("unconfigured_upstream", None)
+        kwargs.pop("unconfigured_downstream", None)
 
         self._executed = False
 
@@ -134,7 +138,7 @@ class PipeElement(Base):
 
     def transform(self, x):
         """Returns the given input"""
-        return self.func(x)
+        return x if self.func is None else self.func(x)
 
     def flow(self, x):
         """Receives flow from upstream, transforms and flows data to downstream elements
@@ -144,33 +148,44 @@ class PipeElement(Base):
 
         Arguments
         ------------------
-        x : numpy array/pandas DataFrame
+        x : FlowData
             The input flow that should be transformed and passed downstream
+
+        Returns
+        ------------------
+        x : FlowData
+            The output of the data transformation that should be passed downstream
 
         """
         if not self.can_execute():
             raise AttributeError("Upstream elements or requirements are not executed")
+
+        if x.to_element != self:
+            raise ValueError(f"{x.to_element} does not equal {self}")
+
         for requirement in self.requirements:
             self.__setattr__(
                 requirement.argument,
                 requirement.pipe_element.__getattr__(requirement.attribute),
             )
         try:
-            self.input_dimensions = x.shape
-            self.input_columns = x.columns
+            self.input_dimensions = x.data.shape
+            self.input_columns = x.data.columns
         except AttributeError:
             pass
 
         if x is not None:
-            x = self.transform(x)
+            x = self.transform(x.data)
 
         try:
             self.output_dimensions = x.shape
             self.output_columns = x.columns
         except AttributeError:
             pass
+
         self._executed = True
-        return self.downstream[0], x
+
+        return [FlowData(self, x, self.downstream[0])]
 
     def reset(self):
         """Resets the PipeElement"""
@@ -194,11 +209,6 @@ class PipeElement(Base):
         """
         if len(self.upstream) == 0:
             self.upstream = (upstream,)
-        elif len(self.upstream) == 1:
-            if self.upstream[0] == upstream.id:
-                self.upstream = (upstream,)
-            else:
-                raise AttributeError("Upstream object already set")
         else:
             raise AttributeError("Only one Upstream object may be set")
 
@@ -218,11 +228,6 @@ class PipeElement(Base):
         """
         if len(self.downstream) == 0:
             self.downstream = (downstream,)
-        elif len(self.downstream) == 1:
-            if self.downstream[0] == downstream.id:
-                self.downstream = (downstream,)
-            else:
-                raise AttributeError("Downstream object already set")
         else:
             raise AttributeError("Only one Downstream object may be set")
 
@@ -237,15 +242,16 @@ class PipeElement(Base):
         """
         self.requirements = self.requirements.union(set(requirements))
 
-    def configure_requirements(self, *pipe_element):
-        """Configures all unconfigured requirements after creation from config
+    def reconfigure(self, *pipe_element):
+        """Reconfigures all unconfigured PipeElements and Requirements from config
 
-        When a PipeElement is created through from_config method, the requirements that
-        come from that configuration dictionary are also just configuration
-        dictionaries, and must therefore also be converted back into the actual
-        Requirement object. The config dictionaries are iterated through and matched up
-        with the given PipeElements in order to match their ID number. Through this
-        method the proper object reference are re-established.
+        When a PipeElement is created through from_config method,
+        the PipeElements and the Requirements that come from that configuration
+        dictionary are also just configuration dictionaries, and must therefore also be
+        converted back into the actual PipeElement and Requirement objects. The config
+        dictionaries are iterated through and matched up with the given PipeElements in
+        order to match their ID number. Through this method the proper object reference
+        are re-established.
 
         Arguments
         ------------------
@@ -253,40 +259,50 @@ class PipeElement(Base):
             The PipeElement(s) that is referenced by ID in the configuration file of
             each unconfigured Requirement
 
-        """
-
-        for r in self._unconfigured_requirements:
-            for e in pipe_element:
-                if r["pipe_element"] == e.id:
-                    self.add_requirement(Requirement.from_config(r, e))
-                    self._unconfigured_requirements.remove(r)
-
-    def validate_stream(self):
-        """Validates that upstream, downstream, and requirements exist
-        
         Raises
         ------------------
-        AttributeError
-            When the upstream or downstream elements are not
-            instances of PipeElements.
-        
-        """
-        for up in self.upstream:
-            if not isinstance(up, PipeElement):
-                raise AttributeError(f"{up} is not a PipeElement")
-        for down in self.downstream:
-            if not isinstance(down, PipeElement):
-                raise AttributeError(f"{down} is not a PipeElement")
-        for r in self.requirements:
-            if not isinstance(r, Requirement):
-                raise AttributeError(f"{r} is not a Requirement")
+        ValueError
+            When the given PipeElements do not sufficiently manage to re-establish all
+            the references
 
-        if len(self._unconfigured_requirements) != 0:
-            raise AttributeError(
-                f"{len(self._unconfigured_requirements)} unconfigured "
-                f"requirements need to be configured before stream is "
-                f"valid"
+        """
+        upstream = [None] * len(self._unconfigured_upstream)
+        downstream = [None] * len(self._unconfigured_downstream)
+        requirements = []
+
+        for e in pipe_element:
+            for i in range(len(self._unconfigured_upstream)):
+                if self._unconfigured_upstream[i] == e.id:
+                    upstream[i] = e
+
+            for i in range(len(self._unconfigured_downstream)):
+                if self._unconfigured_downstream[i] == e.id:
+                    downstream[i] = e
+
+            for req in self._unconfigured_requirements:
+                if req["pipe_element"] == e.id:
+                    requirements.append(Requirement.from_config(req, e))
+
+        if len(upstream) != len(self._unconfigured_upstream):
+            raise ValueError(
+                "Given Pipe Elements could not cover all upstream elements"
             )
+
+        elif len(downstream) != len(self._unconfigured_downstream):
+            raise ValueError(
+                "Given Pipe Elements could not cover all downstream " "elements"
+            )
+
+        elif len(set(requirements)) != len(self._unconfigured_requirements):
+            raise ValueError("Not all Requirements could be created")
+
+        else:
+            self.downstream = tuple(downstream)
+            self.upstream = tuple(upstream)
+            self.requirements = set(requirements)
+            self._unconfigured_downstream = None
+            self._unconfigured_upstream = None
+            self._unconfigured_requirements = None
 
     def to_config(self):
         """Creates a dictionary of class variables
@@ -319,12 +335,10 @@ class PipeElement(Base):
 
         config = {
             "class_name": self.__class__.__name__,
-            "upstream": tuple([e.id for e in self.upstream]),
-            "downstream": tuple([e.id for e in self.downstream]),
+            "unconfigured_upstream": [e.id for e in self.upstream],
+            "unconfigured_downstream": [e.id for e in self.downstream],
             "attributes": attributes,
-            "unconfigured_requirements": set(
-                [r.to_config() for r in self.requirements]
-            ),
+            "unconfigured_requirements": [r.to_config() for r in self.requirements],
         }
         return config
 
@@ -350,10 +364,10 @@ class PipeElement(Base):
         _cls = getattr(importlib.import_module("lyteflow"), config["class_name"])
         if element_id:
             return _cls(
-                upstream=config["upstream"],
-                downstream=config["downstream"],
-                unconfigured_requirements=config["unconfigured_requirements"]
-                ** config["attributes"],
+                unconfigured_upstream=config["unconfigured_upstream"],
+                unconfigured_downstream=config["unconfigured_downstream"],
+                unconfigured_requirements=config["unconfigured_requirements"],
+                **config["attributes"],
             )
         else:
             return _cls(**config["attributes"])
@@ -472,3 +486,10 @@ class Requirement:
 
     def __hash__(self):
         return hash((self.pipe_element.id, self.attribute, self.argument))
+
+
+class FlowData:
+    def __init__(self, from_element, data, to_element):
+        self.from_element = from_element
+        self.data = data
+        self.to_element = to_element

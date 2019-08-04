@@ -46,32 +46,6 @@ def fetch_pipe_elements(pipesystem, ignore_inlets=False, ignore_outlets=False):
     return elements
 
 
-def connect_pipe_elements(elements):
-    for e in elements:
-        if len(e.downstream) == 0 and len(e.upstream) == 0:
-            raise AttributeError(
-                """All given elements need to have the 
-                correct id numbers as the inlets and outlets"""
-            )
-
-    _all = {e.id: e for e in list(elements)}
-    for e in list(elements):
-        for down_id in e.downstream:
-            try:
-                e.attach_downstream(_all[down_id])
-            except TypeError:
-                pass
-
-        for up_id in e.upstream:
-            try:
-                e.attach_upstream(_all[up_id])
-            except TypeError:
-                pass
-
-        e.configure_requirements(*elements)
-        e.validate_stream()
-
-
 class PTGraph:
     """Place Transition Graph built from PipeSystem to calculate execution
 
