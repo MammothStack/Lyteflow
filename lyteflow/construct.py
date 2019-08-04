@@ -10,7 +10,6 @@ TODO: Add Verbosity to the flow process
 
 # Standard library imports
 import json
-import importlib
 
 # Third party imports
 
@@ -18,7 +17,7 @@ import importlib
 from lyteflow.base import Base
 from lyteflow.kernels.io import Inlet, Outlet
 from lyteflow.kernels.base import PipeElement, Requirement
-from lyteflow.util import fetch_pipe_elements, connect_pipe_elements, PTGraph
+from lyteflow.util import fetch_pipe_elements, PTGraph
 
 
 class PipeSystem(Base):
