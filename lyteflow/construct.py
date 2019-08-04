@@ -4,14 +4,18 @@ The class PipeSystem is built as a container for the individual PipeElements. It
 The inlets and outlets of the PipeElements and ensuring that the flow from all outlets
 satisfy reachability in the PipeSystem's current configuration.
 
-TODO: Add Verbosity to the flow process
-
 """
 
 # Standard library imports
 import json
+import warnings
+import sys
 
 # Third party imports
+try:
+    from tqdm import tqdm
+except ImportError:
+    pass
 
 # Local application imports
 from lyteflow.base import Base
@@ -33,19 +37,20 @@ class PipeSystem(Base):
     ------------------
     execution_sequence : list
         The list of PipeElements ordered in their recommended execution
+
+    verbose : bool
+        If the flow execution is verbose
     
     Methods
     ------------------
     flow(x)
         Initiates the flow of inlet_data to the PipeSystem Inlets
 
-    validate_flow()
-        Ensures the flow data in the PipeSystem is valid
-
     to_config()
         Gives a configuration dictionary of class arguments
 
     to_json(file_name)
+        Saves a Json file with the given name
     
     Class Methods
     ------------------
@@ -57,7 +62,7 @@ class PipeSystem(Base):
     
     """
 
-    def __init__(self, inlets, outlets, **kwargs):
+    def __init__(self, inlets, outlets, verbose=False, **kwargs):
         """Constructor of the PipeSystem
 
         Arguments
@@ -67,6 +72,9 @@ class PipeSystem(Base):
 
         outlets : list
             The PipeElements that are data outlets for the PipeSystem
+
+        verbose : bool
+            If flow execution should be verbose
 
         """
         Base.__init__(self, **kwargs)
@@ -81,6 +89,10 @@ class PipeSystem(Base):
 
         self.inlets = inlets
         self.outlets = outlets
+        if verbose and "tqdm" not in sys.modules:
+            warnings.warn("tqdm should be imported for verbose mode", ImportWarning)
+            verbose = False
+        self.verbose = verbose
         self.execution_sequence = PTGraph.get_execution_sequence_(self)
 
     def flow(self, *inlet_data):
@@ -100,10 +112,21 @@ class PipeSystem(Base):
 
         Raises
         ------------------
+        AttributeError
+            No execution sequence possible
+
         ValueError
-            When the PipeSystem's PipeElements are not set up correctly
+            Inlets does not match the amount of data given
 
         """
+
+        def _execution(pipe_element_, data_hold_, output_):
+            flow_data = pipe_element_.flow(*data_hold_[pipe_element_])
+            for fd in flow_data:
+                if fd.to_element is not None:
+                    data_hold_[fd.to_element].append(fd)
+                else:
+                    output_.update({fd.from_element: fd})
 
         if self.execution_sequence is None:
             raise AttributeError(f"No execution sequence possible")
@@ -113,24 +136,21 @@ class PipeSystem(Base):
                 f"Inlet data requires {len(self.inlets)} source(s), "
                 f"but only {len(inlet_data)} were given"
             )
-        all_elements = fetch_pipe_elements(self)
-        data_hold = {e: [] for e in all_elements}
+
+        data_hold = {e: [] for e in fetch_pipe_elements(self)}
         output = {}
 
         for i in range(len(self.inlets)):
             data_hold[self.inlets[i]].append(
-                FlowData(
-                    from_element=None, data=inlet_data[i], to_element=self.inlets[i]
-                )
+                FlowData(data=inlet_data[i], to_element=self.inlets[i])
             )
 
-        for pipe_element in self.execution_sequence:
-            flow_data = pipe_element.flow(*data_hold[pipe_element])
-            for fd in flow_data:
-                if fd.to_element is not None:
-                    data_hold[fd.to_element].append(fd)
-                else:
-                    output.update({fd.from_element: fd})
+        if self.verbose:
+            for pipe_element in tqdm(self.execution_sequence):
+                _execution(pipe_element, data_hold, output)
+        else:
+            for pipe_element in self.execution_sequence:
+                _execution(pipe_element, data_hold, output)
 
         self.input_dimensions = [x.input_dimensions for x in self.inlets]
         self.input_columns = [x.input_columns for x in self.inlets]

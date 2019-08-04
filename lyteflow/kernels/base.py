@@ -173,7 +173,11 @@ class PipeElement(Base):
         """
 
         self._flow_preset_check(x)
-        flow_data = FlowData(self, self.transform(x.data), self.downstream[0])
+        flow_data = FlowData(
+            from_element=self,
+            data=self.transform(x.data),
+            to_element=self.downstream[0],
+        )
         self._flow_postset_check(flow_data)
         self._executed = True
 
@@ -343,12 +347,12 @@ class PipeElement(Base):
                 if req["pipe_element"] == e.id:
                     requirements.append(Requirement.from_config(req, e))
 
-        if len(upstream) != len(self._unconfigured_upstream):
+        if None in upstream:
             raise ValueError(
                 "Given Pipe Elements could not cover all upstream elements"
             )
 
-        elif len(downstream) != len(self._unconfigured_downstream):
+        elif None in downstream:
             raise ValueError(
                 "Given Pipe Elements could not cover all downstream " "elements"
             )
@@ -531,7 +535,36 @@ class Requirement:
 
 
 class FlowData:
-    def __init__(self, from_element, data, to_element):
+    """Data container for transfer between PipeElement
+
+    Attributes
+    ---------------
+    from_element : PipeElement
+        The PipeElement from which the data is coming from
+
+    to_element : PipeElement
+        The PipeElement to which the data should go
+
+    data : numpy.array, pandas.DataFrame
+        The data that is passed between the PipeElements
+
+    """
+
+    def __init__(self, from_element=None, data=None, to_element=None):
+        """Constructor
+
+        Arguments
+        --------------
+        from_element : PipeElement
+            The PipeElement from which the data is coming from
+
+        to_element : PipeElement
+            The PipeElement to which the data should go
+
+        data : numpy.array, pandas.DataFrame
+            The data that is passed between the PipeElements
+
+        """
         self.from_element = from_element
         self.data = data
         self.to_element = to_element

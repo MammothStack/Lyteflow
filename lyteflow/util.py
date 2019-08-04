@@ -19,7 +19,6 @@ import pandas as pd
 import numpy as np
 
 # Local application imports
-from lyteflow.kernels.base import PipeElement, Requirement
 
 
 def fetch_pipe_elements(pipesystem, ignore_inlets=False, ignore_outlets=False):

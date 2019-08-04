@@ -92,7 +92,9 @@ class _Merge(PipeElement):
         """
         self._flow_preset_check(*x)
         flow_data = FlowData(
-            self, self.transform([fd.data for fd in x]), self.downstream[0]
+            from_element=self,
+            data=self.transform([fd.data for fd in x]),
+            to_element=self.downstream[0],
         )
         self._executed = True
         self._flow_postset_check(flow_data)

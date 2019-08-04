@@ -97,9 +97,14 @@ class _Split(PipeElement):
 
         if self.n_output is None:
             matched = zip([y for y in transformed_x], [d for d in self.downstream])
-            return tuple(FlowData(self, z[0], z[1]) for z in matched)
+            return tuple(
+                FlowData(from_element=self, data=z[0], to_element=z[1]) for z in matched
+            )
         else:
-            return tuple(FlowData(self, y, self.downstream[0]) for y in transformed_x)
+            return tuple(
+                FlowData(from_element=self, data=y, to_element=self.downstream[0])
+                for y in transformed_x
+            )
 
     def _flow_postset_check(self, *x):
         """Checks the postset configuration and data
