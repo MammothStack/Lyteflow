@@ -1,6 +1,11 @@
-"""# TODO: Add module title
+"""Module for all transformers that deal with data categorization
 
-# TODO: add module description
+Module contents:
+    Categorizer
+    
+This module helps with dealing with categorical data. The
+Categorizer is used to convert categorical data into dense
+or sparse matrices.
 
 """
 
@@ -14,58 +19,18 @@ from lyteflow.kernels.base import PipeElement
 
 
 class Categorizer(PipeElement):
-    """Inlet for data at beginning of the PipeSystem
-
-    Arguments
-    ------------------
-    columns : list (default=None)
-        The columns that should be converted to categorical data. If None then
-        all given columns will be converted
-
-    sparse : bool (default=False)
-        If the resulting columns should be converted to spare or dense matrix
-
-    absent_ignore : bool (default=False)
-        If any given columns are not found in the given data should be ignored.
-        Execution will halt if false
-
-    keep : bool (default=False)
-        If the columns that are categorized should be kept in the output
-
-    upstream : PipeElement
-        The pipe element which is connected upstream, meaning the upstream
-        element will flow data to this element
-
-    downstream : PipeElement
-        The pipe element which is connected downstream, meaning this pipe
-        element will flow data to the downstream element
-
-    name : str
-        The name that should be given to the PipeElement
+    """Turns columns into dense or sparse categorical columns
+    
+    This class is a subclass of PipeElement and can therefore
+    be used a PipeSystem. The only method this class overrides
+    is the transform method. All other methods of the super 
+    class PipeElement are maintained.
 
     Methods
     ------------------
     transform(x)
-        Returns categorical data based on the given columns
-
-    flow(x)
-        Method that is called when passing data to next PipeElement
-
-    attach_upstream(upstream)
-        Attaches the given PipeElement as an upstream flow source
-
-    attach_downstream(downstream)
-        Attaches the given PipeElement as a downstream flow destination
-
-    to_config()
-        Creates serializable PipeElement
-
-    Raises
-    ------------------
-    ValueError
-        When column parameter is not given as a list or set as None
-
-
+        Returns categorical data based on the columns
+        
     """
     def __init__(
         self,
@@ -75,6 +40,30 @@ class Categorizer(PipeElement):
         keep=False,
         **kwargs
     ):
+        """Constructor for the Categorizer class
+        
+        Arguments
+        ------------------
+        columns : list (default=None)
+            The columns that should be converted to categorical data. If None then
+            all given columns will be converted
+
+        sparse : bool (default=False)
+            If the resulting columns should be converted to spare or dense matrix
+
+        absent_ignore : bool (default=False)
+            If any given columns are not found in the given data should be ignored.
+            Execution will halt if false
+
+        keep : bool (default=False)
+            If the columns that are categorized should be kept in the output
+            
+        Raises
+        ------------------
+        ValueError
+            When column parameter is not given as a list or set as None
+            
+        """
 
         PipeElement.__init__(self, **kwargs)
         if isinstance(columns, list) or columns is None:
@@ -90,6 +79,8 @@ class Categorizer(PipeElement):
 
     def transform(self, x):
         """Returns categorical data based on the columns
+        
+        This method overrides its super method.
 
         Arguments
         ------------------

@@ -1,4 +1,4 @@
-from .base import PipeElement
+from .base import PipeElement, Requirement, FlowData
 from .io import Inlet, Outlet
 from .categorical import Categorizer
 from .merge import Concatenator

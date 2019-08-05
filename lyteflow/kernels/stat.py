@@ -155,7 +155,7 @@ class Normalizer(PipeElement):
 
 class Standardizer(PipeElement):
     """
-    # TODO
+    # TODO: doc
     """
 
     def __init__(self, dependent=False, **kwargs):
@@ -175,7 +175,7 @@ class Standardizer(PipeElement):
 
 class Scaler(PipeElement):
     """
-    ' TODO
+    ' TODO: doc
     """
 
     def __init__(self, scalar, **kwargs):

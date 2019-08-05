@@ -1,0 +1,58 @@
+{
+    "inlets": [
+        {
+            "class_name": "Inlet",
+            "unconfigured_upstream": [],
+            "unconfigured_downstream": [
+                140550537054528
+            ],
+            "attributes": {
+                "name": "in_1",
+                "id": 140550513220856,
+                "convert": false
+            },
+            "unconfigured_requirements": []
+        },
+        {
+            "class_name": "Inlet",
+            "unconfigured_upstream": [],
+            "unconfigured_downstream": [
+                140549868009400
+            ],
+            "attributes": {
+                "name": "in_2",
+                "id": 140550472814264,
+                "convert": true
+            },
+            "unconfigured_requirements": []
+        }
+    ],
+    "outlets": [
+        {
+            "class_name": "Outlet",
+            "unconfigured_upstream": [
+                140550513220856
+            ],
+            "unconfigured_downstream": [],
+            "attributes": {
+                "name": "out_1",
+                "id": 140550537054528
+            },
+            "unconfigured_requirements": []
+        },
+        {
+            "class_name": "Outlet",
+            "unconfigured_upstream": [
+                140550472814264
+            ],
+            "unconfigured_downstream": [],
+            "attributes": {
+                "name": "out_2",
+                "id": 140549868009400
+            },
+            "unconfigured_requirements": []
+        }
+    ],
+    "elements": [],
+    "name": "ps"
+}

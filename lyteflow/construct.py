@@ -4,25 +4,63 @@ The class PipeSystem is built as a container for the individual PipeElements. It
 The inlets and outlets of the PipeElements and ensuring that the flow from all outlets
 satisfy reachability in the PipeSystem's current configuration.
 
-TODO: Add Verbosity to the flow process
-
 """
 
 # Standard library imports
 import json
-import importlib
+import warnings
+import sys
 
 # Third party imports
+from tqdm import tqdm
 
 # Local application imports
 from lyteflow.base import Base
 from lyteflow.kernels.io import Inlet, Outlet
-from lyteflow.kernels.base import PipeElement
+from lyteflow.kernels.base import PipeElement, FlowData
+from lyteflow.util import fetch_pipe_elements, PTGraph
 
 
 class PipeSystem(Base):
-    def __init__(self, inlets, outlets, **kwargs):
-        """The container system to hold the PipeElements
+    """The container system to hold the PipeElements
+    
+    A PipeSystem is responsible for the correct sequential execution of all the connected
+    PipeElements. The PipeSystem needs to be initialized with the inlets and outlets of
+    the system. This is to ensure the PipeSystem has a reference what the inputs and
+    outputs are, which is important in calculating the reachability and execution
+    sequence of the system.
+
+    Attributes
+    ------------------
+    execution_sequence : list
+        The list of PipeElements ordered in their recommended execution
+
+    verbose : bool
+        If the flow execution is verbose
+    
+    Methods
+    ------------------
+    flow(x)
+        Initiates the flow of inlet_data to the PipeSystem Inlets
+
+    to_config()
+        Gives a configuration dictionary of class arguments
+
+    to_json(file_name)
+        Saves a Json file with the given name
+    
+    Class Methods
+    ------------------
+    from_config()
+        Creates PipeElement from config
+
+    from_json()
+        Creates PipeElement from json
+    
+    """
+
+    def __init__(self, inlets, outlets, verbose=False, **kwargs):
+        """Constructor of the PipeSystem
 
         Arguments
         ------------------
@@ -32,29 +70,8 @@ class PipeSystem(Base):
         outlets : list
             The PipeElements that are data outlets for the PipeSystem
 
-        name : str
-            The name of the PipeSystem
-
-        Methods
-        ------------------
-        flow(x)
-            Initiates the flow of inlet_data to the PipeSystem Inlets
-
-        validate_flow()
-            Ensures the flow data in the PipeSystem is valid
-
-        to_config()
-            Gives a configuration dictionary of class arguments
-
-        to_json(file_name)
-
-        Class Methods
-        ------------------
-        from_config()
-            Creates PipeElement from config
-
-        from_json()
-            Creates PipeElement from json
+        verbose : bool
+            If flow execution should be verbose
 
         """
         Base.__init__(self, **kwargs)
@@ -69,14 +86,16 @@ class PipeSystem(Base):
 
         self.inlets = inlets
         self.outlets = outlets
+        self.verbose = verbose
+        self.execution_sequence = PTGraph.get_execution_sequence_(self)
 
-    def flow(self, inlet_data):
+    def flow(self, *inlet_data):
         """Initiates the flow of inlet_data to the PipeSystem Inlets
 
         Arguments
         ------------------
-        inlet_data : list (n sized for n Input PipeElements)
-            A list of the data that should be passed to the Inlet PipeElements.
+        *inlet_data : numpy.array/pandas.DataFrame
+            A tuple of the data that should be passed to the Inlet PipeElements.
             Data should be given in order of the Inlet PipeElements specified during
             instantiation
 
@@ -88,12 +107,23 @@ class PipeSystem(Base):
         Raises
         ------------------
         AttributeError
-            When the PipeSystem's PipeElements are not set up correctly
+            No execution sequence possible
+
+        ValueError
+            Inlets does not match the amount of data given
 
         """
 
-        if not self.validate_flow():
-            raise AttributeError("Flow Validation Error")
+        def _execution(pipe_element_, data_hold_, output_):
+            flow_data = pipe_element_.flow(*data_hold_[pipe_element_])
+            for fd in flow_data:
+                if fd.to_element is not None:
+                    data_hold_[fd.to_element].append(fd)
+                else:
+                    output_.update({fd.from_element: fd})
+
+        if self.execution_sequence is None:
+            raise AttributeError(f"No execution sequence possible")
 
         if len(self.inlets) != len(inlet_data):
             raise ValueError(
@@ -101,46 +131,29 @@ class PipeSystem(Base):
                 f"but only {len(inlet_data)} were given"
             )
 
+        data_hold = {e: [] for e in fetch_pipe_elements(self)}
+        output = {}
+
         for i in range(len(self.inlets)):
-            self.inlets[i].flow(inlet_data[i])
+            data_hold[self.inlets[i]].append(
+                FlowData(data=inlet_data[i], to_element=self.inlets[i])
+            )
+
+        if self.verbose:
+            pbar = tqdm(self.execution_sequence)
+            for pipe_element in pbar:
+                pbar.set_description(f"Flowing {pipe_element.name}")
+                _execution(pipe_element, data_hold, output)
+        else:
+            for pipe_element in self.execution_sequence:
+                _execution(pipe_element, data_hold, output)
 
         self.input_dimensions = [x.input_dimensions for x in self.inlets]
         self.input_columns = [x.input_columns for x in self.inlets]
         self.output_dimensions = [x.output_dimensions for x in self.outlets]
         self.output_columns = [x.output_columns for x in self.outlets]
 
-        return [outlet.output for outlet in self.outlets]
-
-    def validate_flow(self):
-        """Ensures the flow data in the PipeSystem is valid
-
-        Returns
-        ------------------
-        bool
-            If the PipeSystem's flow is valid
-
-        """
-
-        marked = []
-
-        def mark_recursive(element):
-            if isinstance(element, list) is False:
-                element = [element]
-
-            for e in element:
-                if isinstance(e.upstream, list) is False:
-                    ups = [e.upstream]
-                else:
-                    ups = e.upstream
-
-                if set(ups).issubset(set(marked)) or ups[0] is None:
-                    marked.append(e)
-                    if e.downstream is not None:
-                        mark_recursive(e.downstream)
-
-        mark_recursive(self.inlets)
-
-        return set(self.inlets + self.outlets).issubset(set(marked))
+        return [output[outlet].data for outlet in self.outlets]
 
     def to_config(self):
         """Gives a configuration dictionary of class arguments
@@ -157,28 +170,14 @@ class PipeSystem(Base):
 
         """
 
-        def traverse(element):
-            if not isinstance(element, list):
-                element = [element]
-
-            for e in element:
-                if e not in elements and e not in self.inlets and e not in self.outlets:
-                    elements.append(e.to_config())
-
-                if e.downstream is not None:
-                    traverse(e.downstream)
-
-        if not self.validate_flow():
-            raise AttributeError("Invalid Pipesystems cannot be serialized")
-        elements = []
-        traverse(self.inlets)
-        in_conf = [e.to_config() for e in self.inlets]
-        out_conf = [e.to_config() for e in self.outlets]
+        elements = fetch_pipe_elements(
+            pipesystem=self, ignore_inlets=True, ignore_outlets=True
+        )
 
         return {
-            "inlets": in_conf,
-            "outlets": out_conf,
-            "elements": elements,
+            "inlets": [e.to_config() for e in self.inlets],
+            "outlets": [e.to_config() for e in self.outlets],
+            "elements": [e.to_config() for e in elements],
             "name": self.name,
         }
 
@@ -189,48 +188,51 @@ class PipeSystem(Base):
         ------------------
         file_name : str (default="pipesystem.json")
             The full file name where the json file should be written to
-
-        :return:
+            
         """
         with open(file_name, "w") as json_file:
             json.dump(self.to_config(), json_file, indent=4)
 
     @classmethod
     def from_config(cls, config):
-        created = {}
+        """Creates a PipeSystem from Pipesystem configuration
+        
+        Arguments
+        ------------------
+        config : dict
+            The configuration that should be converted into a
+            PipeSystem
+            
+        Returns
+        ------------------
+        PipeSystem
+        
+        """
+        inlets = [Inlet.from_config(c, element_id=True) for c in config["inlets"]]
+        outlets = [Outlet.from_config(c, element_id=True) for c in config["outlets"]]
+        elements = [
+            PipeElement.from_config(c, element_id=True) for c in config["elements"]
+        ]
+        _all = inlets + outlets + elements
 
-        def traverse(conf):
-            if conf["upstream"] == [None] or set(conf["upstream"]).issubset(
-                set(created.keys())
-            ):
-                element = PipeElement.from_config(conf)
-                created.update({element.id: element})
-                if conf["upstream"] != [None]:
-                    for up in conf["upstream"]:
-                        element.attach_upstream(created[up])
+        for e in _all:
+            e.reconfigure(*_all)
 
-                if conf["downstream"] != [None]:
-                    for down in conf["downstream"]:
-                        for possible in config["elements"] + config["outlets"]:
-                            if down == possible["id"]:
-                                traverse(possible)
-                        element.attach_downstream(created[down])
-
-        for inlet_config in config["inlets"]:
-            traverse(inlet_config)
-
-        return cls(
-            inlets=[created[c["id"]] for c in config["inlets"]],
-            outlets=[created[c["id"]] for c in config["outlets"]],
-            name=config["name"],
-        )
+        return cls(inlets=inlets, outlets=outlets, name=config["name"])
 
     @classmethod
     def from_json(cls, json_file_name):
-        """Creates PipeElement from json
+        """Creates PipeSystem from json
 
-        :param json_file_name:
-        :return:
+        Arguments
+        ------------------
+        json_file_name : str
+            The location of the file name of the json file
+        
+        Returns
+        ------------------
+        PipeSystem
+        
         """
         file = open(json_file_name)
         json_str = file.read()

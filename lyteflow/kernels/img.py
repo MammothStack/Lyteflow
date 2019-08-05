@@ -167,51 +167,32 @@ class Rotator(PipeElement):
     additional padding will be introduced in order to accommodate the rotation. This
     can be removed, but some data loss may occur.
 
-    Arguments
-    ------------------
-    rotations : list or set
-        A list like object containing the degrees of the required rotations from
-        -359 to 359 degrees
-
-    remove_padding : bool
-        If the padding, which is added during rotation should be removed after
-        rotating
-
-    keep_original : bool
-        If the original images should be included in the resulting array
-
-    upstream : PipeElement
-        The pipe element which is connected upstream, meaning the upstream
-        element will flow data to this element
-
-    downstream : PipeElement
-        The pipe element which is connected downstream, meaning this pipe
-        element will flow data to the downstream element
-
-    name : str
-        The name that should be given to the PipeElement
-
     Methods
     ------------------
     transform(x)
         Returns the original as well as the rotated images
-
-    flow(x)
-        Method that is called when passing data to next PipeElement
-
-    attach_upstream(upstream)
-        Attaches the given PipeElement as an upstream flow source
-
-    attach_downstream(downstream)
-        Attaches the given PipeElement as a downstream flow destination
-
-    to_config()
-        Creates serializable PipeElement
+        
     """
 
     def __init__(
         self, rotations=None, remove_padding=False, keep_original=False, **kwargs
     ):
+        """Constructor
+        
+        Arguments
+        ------------------
+        rotations : list or set
+            A list like object containing the degrees of the required rotations from
+            -359 to 359 degrees
+
+        remove_padding : bool
+            If the padding, which is added during rotation should be removed after
+            rotating
+
+        keep_original : bool
+            If the original images should be included in the resulting array
+
+        """
         PipeElement.__init__(self, **kwargs)
         verified_rotations = [r % 360 if r >= 0 else r % -360 for r in rotations]
 
@@ -220,6 +201,7 @@ class Rotator(PipeElement):
 
         self.keep_original = keep_original
         self.rotations = sorted(set(verified_rotations))
+        self.n_output = len(self.rotations)
         self.remove_padding = remove_padding
 
     def transform(self, x):
@@ -280,56 +262,40 @@ class Rotator(PipeElement):
 class Padder(PipeElement):
     """Adds padding to the given images
 
-    Arguments
-    ------------------
-    resolution : tuple
-        The resolution that should result from padding
-
-    mode : str
-        One of the following string values
-
-        "m"
-            Adds the pixels from the inside out. When only one pixel should be
-            added to an axis the bottom and right sides will be preferred
-        "tl"
-            Preserves the top-left corner and pads to the bottom-right
-        "tr"
-            Preserves the top-right corner and pads to the bottom-left
-        "bl"
-            Preserves the bottom-left corner and pads to the top-right
-        "br"
-            Preserves the bottom-right corner and pads to the top-left
-
-    upstream : PipeElement
-        The pipe element which is connected upstream, meaning the upstream
-        element will flow data to this element
-
-    downstream : PipeElement
-        The pipe element which is connected downstream, meaning this pipe
-        element will flow data to the downstream element
-
-    name : str
-        The name that should be given to the PipeElement
-
     Methods
     ------------------
+    pad(image, resolution, mode="m")
+        Adds padding of the given image(s) to the given resolution
+        
     transform(x)
-        Returns the original as well as the rotated images
-
-    flow(x)
-        Method that is called when passing data to next PipeElement
-
-    attach_upstream(upstream)
-        Attaches the given PipeElement as an upstream flow source
-
-    attach_downstream(downstream)
-        Attaches the given PipeElement as a downstream flow destination
-
-    to_config()
-        Creates serializable PipeElement
+        Returns the padded image(s)
+    
     """
 
     def __init__(self, resolution, mode="m", **kwargs):
+        """Constructor
+        
+        Arguments
+        ------------------
+        resolution : tuple
+            The resolution that should result from padding
+
+        mode : str
+            One of the following string values
+
+            "m"
+                Adds the pixels from the inside out. When only one pixel should be
+                added to an axis the bottom and right sides will be preferred
+            "tl"
+                Preserves the top-left corner and pads to the bottom-right
+            "tr"
+                Preserves the top-right corner and pads to the bottom-left
+            "bl"
+                Preserves the bottom-left corner and pads to the top-right
+            "br"
+                Preserves the bottom-right corner and pads to the top-left
+        
+        """
         PipeElement.__init__(self, **kwargs)
         self.resolution = resolution
         self.mode = mode
@@ -391,62 +357,61 @@ class Padder(PipeElement):
             )
 
     def transform(self, x):
+        """Returns the padded image(s)
+        
+        This method overrides its super method.
+
+        Arguments
+        ------------------
+        x : numpy.array
+            The images that should be padded
+
+        Returns
+        ------------------
+        x : numpy.array
+            padded images
+
+        """
+
         return self.pad(image=x, resolution=self.resolution, mode=self.mode)
 
 
 class Depadder(PipeElement):
     """Removes padding from the given images
 
-    Arguments
-    ------------------
-    resolution : tuple
-        The resolution that should result from depadding
-
-    mode : str
-        One of the following string values
-
-        "m"
-            Removes the pixels from the outside in. When only one pixel should be
-            removed from an axis the bottom and right sides will be preferred
-        "tl"
-            Preserves the top-left corner and depads from the bottom-right
-        "tr"
-            Preserves the top-right corner and depads from the bottom-left
-        "bl"
-            Preserves the bottom-left corner and depads from the top-right
-        "br"
-            Preserves the bottom-right corner and depads from the top-left
-
-    upstream : PipeElement
-        The pipe element which is connected upstream, meaning the upstream
-        element will flow data to this element
-
-    downstream : PipeElement
-        The pipe element which is connected downstream, meaning this pipe
-        element will flow data to the downstream element
-
-    name : str
-        The name that should be given to the PipeElement
-
     Methods
     ------------------
+    depad(image, resolution, mode="m"):
+        Removes padding of the given image(s) to the given resolution
+        
     transform(x)
         Returns the original as well as the rotated images
-
-    flow(x)
-        Method that is called when passing data to next PipeElement
-
-    attach_upstream(upstream)
-        Attaches the given PipeElement as an upstream flow source
-
-    attach_downstream(downstream)
-        Attaches the given PipeElement as a downstream flow destination
-
-    to_config()
-        Creates serializable PipeElement
+        
     """
 
     def __init__(self, resolution, mode="m", **kwargs):
+        """
+        Arguments
+        ------------------
+        resolution : tuple
+            The resolution that should result from depadding
+
+        mode : str
+            One of the following string values
+
+            "m"
+                Removes the pixels from the outside in. When only one pixel should be
+                removed from an axis the bottom and right sides will be preferred
+            "tl"
+                Preserves the top-left corner and depads from the bottom-right
+            "tr"
+                Preserves the top-right corner and depads from the bottom-left
+            "bl"
+                Preserves the bottom-left corner and depads from the top-right
+            "br"
+                Preserves the bottom-right corner and depads from the top-left
+                
+        """
         PipeElement.__init__(self, **kwargs)
         self.resolution = resolution
         self.mode = mode
@@ -504,6 +469,21 @@ class Depadder(PipeElement):
             return image[:, top:bottom, left:right]
 
     def transform(self, x):
+        """Returns the depadded image(s)
+        
+        This method overrides its super method.
+
+        Arguments
+        ------------------
+        x : numpy.array
+            The images that should be depadded
+
+        Returns
+        ------------------
+        x : numpy.array
+            depadded images
+
+        """
         return self.depad(image=x, resolution=self.resolution, mode=self.mode)
 
 
