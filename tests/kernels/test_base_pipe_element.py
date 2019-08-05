@@ -64,6 +64,7 @@ class TestConfig:
             "rotations": [-90, 0, 90],
             "remove_padding": True,
             "keep_original": True,
+            "n_output": 3,
         }
 
         result = r.to_config()["attributes"]

@@ -201,6 +201,7 @@ class Rotator(PipeElement):
 
         self.keep_original = keep_original
         self.rotations = sorted(set(verified_rotations))
+        self.n_output = len(self.rotations)
         self.remove_padding = remove_padding
 
     def transform(self, x):
@@ -371,7 +372,7 @@ class Padder(PipeElement):
             padded images
 
         """
-        
+
         return self.pad(image=x, resolution=self.resolution, mode=self.mode)
 
 

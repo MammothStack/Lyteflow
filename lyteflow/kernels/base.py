@@ -418,7 +418,7 @@ class PipeElement(Base):
         for requirement in self.requirements:
             self.__setattr__(
                 requirement.argument,
-                requirement.pipe_element.__getattr__(requirement.attribute),
+                requirement.pipe_element.__getattribute__(requirement.attribute),
             )
 
         try:
@@ -482,7 +482,7 @@ class Requirement:
         
     """
 
-    def __init__(self, pipe_element, attribute, argument):
+    def __init__(self, pipe_element, attribute, argument, func=None):
         """Constructor for the Requirement class
         
         Arguments

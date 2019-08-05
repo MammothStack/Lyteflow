@@ -148,4 +148,7 @@ class Duplicator(_Split):
         _Split.__init__(self, **kwargs)
 
     def transform(self, x):
-        return [x.copy() for i in range(len(self.downstream))]
+        if self.n_output is None:
+            return [x.copy() for i in range(len(self.downstream))]
+        else:
+            return [x.copy() for i in range(self.n_output)]
