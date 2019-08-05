@@ -95,10 +95,6 @@ class Outlet(PipeElement):
 
     """
 
-    def __init__(self, **kwargs):
-        PipeElement.__init__(self, **kwargs)
-        self.downstream = (None,)
-
     def attach_downstream(self, downstream):
         """Throws an error if anything other than None is attached"""
         if downstream is not None:

@@ -65,7 +65,15 @@ class PipeElement(Base):
 
     reconfigure(*pipe_elements)
         Reconfigures all unconfigured PipeElements and Requirements from config
-        
+
+    Properties
+    ----------------
+    executed : bool
+        If the PipeElement has executed the flow method
+
+    configured : bool
+        If the PipeElement is configured
+
     """
 
     def __init__(self, **kwargs):
@@ -114,6 +122,14 @@ class PipeElement(Base):
     def executed(self):
         return self._executed
 
+    @property
+    def configured(self):
+        return (
+            self._unconfigured_downstream is None
+            and self._unconfigured_upstream is None
+            and self._unconfigured_requirements is None
+        )
+
     def can_execute(self):
         """If this PipeElement can be executed
         
@@ -123,11 +139,11 @@ class PipeElement(Base):
 
         """
         for u in self.upstream:
-            if not u.executed():
+            if not u.executed:
                 return False
 
         for r in self.requirements:
-            if not r.upstream.executed():
+            if not r.pipe_element.executed:
                 return False
 
         return True
@@ -173,10 +189,9 @@ class PipeElement(Base):
         """
 
         self._flow_preset_check(x)
+        to_element = self.downstream[0] if self.downstream != tuple() else None
         flow_data = FlowData(
-            from_element=self,
-            data=self.transform(x.data),
-            to_element=self.downstream[0],
+            from_element=self, data=self.transform(x.data), to_element=to_element
         )
         self._flow_postset_check(flow_data)
         self._executed = True
@@ -264,6 +279,9 @@ class PipeElement(Base):
             "_executed",
             "requirements",
             "func",
+            "_unconfigured_upstream",
+            "_unconfigured_downstream",
+            "_unconfigured_requirements",
         ]:
             attributes.pop(i, None)
 
@@ -385,6 +403,12 @@ class PipeElement(Base):
             When the given FlowData is not addressed to this PipeElement
 
         """
+        if not self.configured:
+            raise AttributeError(
+                "Not configured. Requires method 'reconfigure' to "
+                "reestablish connection with other PipeElements"
+            )
+
         if not self.can_execute():
             raise AttributeError("Upstream elements or requirements are not executed")
 

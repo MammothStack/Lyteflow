@@ -129,6 +129,12 @@ class _Merge(PipeElement):
             When the given FlowData is not addressed to this PipeElement
 
         """
+        if not self.configured:
+            raise AttributeError(
+                "Not configured. Requires method 'reconfigure' to "
+                "reestablish connection with other PipeElements"
+            )
+
         if not self.can_execute():
             raise AttributeError("Upstream elements or requirements are not executed")
 

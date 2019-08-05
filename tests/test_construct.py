@@ -5,6 +5,7 @@ import numpy as np
 # local imports
 from lyteflow.construct import PipeSystem
 from lyteflow.kernels import *
+from tests.sample import make_simple_pipesystem, make_complex_pipe_system
 
 
 @pytest.fixture()
@@ -20,6 +21,17 @@ def labels():
 @pytest.fixture()
 def basic_pipesystem():
     in_1 = Inlet(convert=False, name="in_1")
+    out_1 = Outlet(name="out_1")(in_1)
+
+    in_2 = Inlet(convert=True, name="in_2")
+    out_2 = Outlet(name="out_2")(in_2)
+
+    return PipeSystem(inlets=[in_1, in_2], outlets=[out_1, out_2], name="ps")
+
+
+@pytest.fixture()
+def complex_pipesystem():
+    in_1 = Inlet(convert=False, name="in_1")
     sca = Scaler(scalar=1 / 255)(in_1)
     rot = Rotator([90, -90], remove_padding=False, keep_original=True)(sca)
     out_1 = Outlet(name="out_1")(rot)
@@ -30,24 +42,23 @@ def basic_pipesystem():
     con = Concatenator()(dup, dup, dup)
     out_2 = Outlet(name="out_2")(con)
 
-    ps = PipeSystem(inlets=[in_1, in_2], outlets=[out_1, out_2], name="ps")
-
-    return ps
+    return PipeSystem(inlets=[in_1, in_2], outlets=[out_1, out_2], name="ps")
 
 
 @pytest.fixture()
 def basic_pipesystem_json():
-    return PipeSystem.from_json(json_file_name="tests/sample_ps.json")
+    return PipeSystem.from_json(json_file_name="ps_simple.json")
+
+
+@pytest.fixture()
+def complex_pipesystem_json():
+    return PipeSystem.from_json(json_file_name="ps_complex.json")
 
 
 class TestPipeSystemConfig(object):
     def test_keys(self, basic_pipesystem):
-        assert set(basic_pipesystem.to_config()) == {
-            "outlets",
-            "inlets",
-            "elements",
-            "name",
-        }
+        expected = {"outlets", "inlets", "elements", "name"}
+        assert set(basic_pipesystem.to_config().keys()) == expected
 
     def test_contents_name(self, basic_pipesystem):
         assert "ps" == basic_pipesystem.to_config()["name"]
@@ -75,6 +86,7 @@ class TestPipeSystemConfig(object):
     def test_to_from_json(
         self, basic_pipesystem, basic_pipesystem_json, images, labels
     ):
-        res = basic_pipesystem.flow([images, labels])
-        res_json = basic_pipesystem_json.flow([images, labels])
-        assert res[0].all() == res_json[0].all() and res[1].all() == res_json[1].all()
+        res = basic_pipesystem.flow(images, labels)
+        res_json = basic_pipesystem_json.flow(images, labels)
+
+        assert (res[0] == res_json[0]).all() and ((res[1] == res_json[1]).all().all())

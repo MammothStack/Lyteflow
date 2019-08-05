@@ -1,0 +1,148 @@
+{
+    "inlets": [
+        {
+            "class_name": "Inlet",
+            "unconfigured_upstream": [],
+            "unconfigured_downstream": [
+                140550472476096
+            ],
+            "attributes": {
+                "name": "in_1",
+                "id": 140550472476040,
+                "convert": false
+            },
+            "unconfigured_requirements": []
+        },
+        {
+            "class_name": "Inlet",
+            "unconfigured_upstream": [],
+            "unconfigured_downstream": [
+                140550472476320
+            ],
+            "attributes": {
+                "name": "in_2",
+                "id": 140550472476264,
+                "convert": true
+            },
+            "unconfigured_requirements": []
+        }
+    ],
+    "outlets": [
+        {
+            "class_name": "Outlet",
+            "unconfigured_upstream": [
+                140550472476152
+            ],
+            "unconfigured_downstream": [],
+            "attributes": {
+                "name": "out_1",
+                "id": 140550472476208
+            },
+            "unconfigured_requirements": []
+        },
+        {
+            "class_name": "Outlet",
+            "unconfigured_upstream": [
+                140549868008112
+            ],
+            "unconfigured_downstream": [],
+            "attributes": {
+                "name": "out_2",
+                "id": 140549868009232
+            },
+            "unconfigured_requirements": []
+        }
+    ],
+    "elements": [
+        {
+            "class_name": "Scaler",
+            "unconfigured_upstream": [
+                140550472476040
+            ],
+            "unconfigured_downstream": [
+                140550472476152
+            ],
+            "attributes": {
+                "name": "Scaler",
+                "id": 140550472476096,
+                "scalar": 0.00392156862745098
+            },
+            "unconfigured_requirements": []
+        },
+        {
+            "class_name": "Rotator",
+            "unconfigured_upstream": [
+                140550472476096
+            ],
+            "unconfigured_downstream": [
+                140550472476208
+            ],
+            "attributes": {
+                "name": "Rotator",
+                "id": 140550472476152,
+                "keep_original": true,
+                "rotations": [
+                    -90,
+                    0,
+                    90
+                ],
+                "remove_padding": false
+            },
+            "unconfigured_requirements": []
+        },
+        {
+            "class_name": "Categorizer",
+            "unconfigured_upstream": [
+                140550472476264
+            ],
+            "unconfigured_downstream": [
+                140550472476376
+            ],
+            "attributes": {
+                "name": "Categorizer",
+                "id": 140550472476320,
+                "columns": null,
+                "sparse": true,
+                "absent_ignore": false,
+                "keep": false
+            },
+            "unconfigured_requirements": []
+        },
+        {
+            "class_name": "Duplicator",
+            "unconfigured_upstream": [
+                140550472476320
+            ],
+            "unconfigured_downstream": [
+                140549868008112,
+                140549868008112,
+                140549868008112
+            ],
+            "attributes": {
+                "n_output": null,
+                "name": "Duplicator",
+                "id": 140550472476376
+            },
+            "unconfigured_requirements": []
+        },
+        {
+            "class_name": "Concatenator",
+            "unconfigured_upstream": [
+                140550472476376,
+                140550472476376,
+                140550472476376
+            ],
+            "unconfigured_downstream": [
+                140549868009232
+            ],
+            "attributes": {
+                "name": "Concatenator",
+                "id": 140549868008112,
+                "axis": 0,
+                "ignore_index": false
+            },
+            "unconfigured_requirements": []
+        }
+    ],
+    "name": "ps"
+}
