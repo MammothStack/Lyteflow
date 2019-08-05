@@ -13,19 +13,26 @@ git clone https://github.com/MammothStack/Lyteflow.git Lyteflow
 ```
 ## Usages
 ```python
-from Lyteflow import PipeSystem, Inlet, Outlet, Normalizer, Rotator
+from lyteflow.construct import PipeSystem
+from lyteflow.kernels import *
 
-images = get_data()
-in_1 = Inlet(convert=False)
-x = Normalizer(scale_from=(0,255), scale_to=(0,1))(in_1)
-x = Rotator([-10, -5, 5, 10], remove_padding=True, keep_original=True)(x)
-out_1 = Outlet()
-ps = PipeSystem([in_1], [out_1])
+in_1 = Inlet(convert=False, name="in_1")
+sca = Scaler(scalar=1 / 255)(in_1)
+rot = Rotator([90, -90], remove_padding=False, keep_original=True)(sca)
+out_1 = Outlet(name="out_1")(rot)
 
-processed_images = ps.flow(images)
+in_2 = Inlet(convert=True, name="in_2")
+cat = Categorizer(sparse=True)(in_2)
+dup = Duplicator()(cat)
+con = Concatenator()(dup)
+out_2 = Outlet(name="out_2")(con)
+
+dup.add_requirement(Requirement(rot, attribute="n_output", argument="n_output"))
+
+ps = PipeSystem(inlets=[in_1, in_2], outlets=[out_1, out_2], name="ps", verbose=True)
+
+processed_images, processed_labels = ps.flow(images, labels)
 ```
-## Support
-## Contributing
 ## Authors
 Patrick Bogner
 ## License

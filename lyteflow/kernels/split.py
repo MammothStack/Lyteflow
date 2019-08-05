@@ -144,6 +144,10 @@ class _Split(PipeElement):
 
 
 class Duplicator(_Split):
+    """
+    TODO: doc
+    """
+
     def __init__(self, **kwargs):
         _Split.__init__(self, **kwargs)
 
