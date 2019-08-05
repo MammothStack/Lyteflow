@@ -12,10 +12,7 @@ import warnings
 import sys
 
 # Third party imports
-try:
-    from tqdm import tqdm
-except ImportError:
-    pass
+from tqdm import tqdm
 
 # Local application imports
 from lyteflow.base import Base
@@ -89,9 +86,6 @@ class PipeSystem(Base):
 
         self.inlets = inlets
         self.outlets = outlets
-        if verbose and "tqdm" not in sys.modules:
-            warnings.warn("tqdm should be imported for verbose mode", ImportWarning)
-            verbose = False
         self.verbose = verbose
         self.execution_sequence = PTGraph.get_execution_sequence_(self)
 
@@ -146,7 +140,9 @@ class PipeSystem(Base):
             )
 
         if self.verbose:
-            for pipe_element in tqdm(self.execution_sequence):
+            pbar = tqdm(self.execution_sequence)
+            for pipe_element in pbar:
+                pbar.set_description(f"Flowing {pipe_element.name}")
                 _execution(pipe_element, data_hold, output)
         else:
             for pipe_element in self.execution_sequence:

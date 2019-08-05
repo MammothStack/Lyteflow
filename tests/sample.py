@@ -21,7 +21,9 @@ def make_complex_pipe_system():
     con = Concatenator()(dup, dup, dup)
     out_2 = Outlet(name="out_2")(con)
 
-    return PipeSystem(inlets=[in_1, in_2], outlets=[out_1, out_2], name="ps")
+    return PipeSystem(
+        inlets=[in_1, in_2], outlets=[out_1, out_2], name="ps", verbose=True
+    )
 
 
 def make_simple_pipesystem():
@@ -33,7 +35,9 @@ def make_simple_pipesystem():
     # cat = Categorizer(sparse=True)(in_2)
     out_2 = Outlet(name="out_2")(in_2)
 
-    return PipeSystem(inlets=[in_1, in_2], outlets=[out_1, out_2], name="ps")
+    return PipeSystem(
+        inlets=[in_1, in_2], outlets=[out_1, out_2], name="ps", verbose=True
+    )
 
 
 ps_complex = make_complex_pipe_system()
