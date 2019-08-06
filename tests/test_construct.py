@@ -5,7 +5,6 @@ import numpy as np
 # local imports
 from lyteflow.construct import PipeSystem
 from lyteflow.kernels import *
-from tests.sample import make_simple_pipesystem, make_complex_pipe_system
 
 
 @pytest.fixture()

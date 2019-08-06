@@ -35,6 +35,7 @@ class Base:
         Resets the attributes
     
     """
+
     def __init__(self, **kwargs):
         """Constructor for Base class
         

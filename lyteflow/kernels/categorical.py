@@ -32,13 +32,9 @@ class Categorizer(PipeElement):
         Returns categorical data based on the columns
         
     """
+
     def __init__(
-        self,
-        columns=None,
-        sparse=False,
-        absent_ignore=False,
-        keep=False,
-        **kwargs
+        self, columns=None, sparse=False, absent_ignore=False, keep=False, **kwargs
     ):
         """Constructor for the Categorizer class
         
@@ -69,9 +65,7 @@ class Categorizer(PipeElement):
         if isinstance(columns, list) or columns is None:
             self.columns = columns
         else:
-            raise ValueError(
-                "Given columns has to be of type list or None"
-            )
+            raise ValueError("Given columns has to be of type list or None")
 
         self.sparse = sparse
         self.absent_ignore = absent_ignore
@@ -98,7 +92,7 @@ class Categorizer(PipeElement):
             self.columns = list(x.columns)
         for col in self.columns:
             try:
-                x[col] = x[col].astype('category')
+                x[col] = x[col].astype("category")
                 found_columns.append(col)
             except KeyError:
                 if self.absent_ignore:

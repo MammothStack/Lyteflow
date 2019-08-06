@@ -69,6 +69,9 @@ class PipeElement(Base):
     executed : bool
         If the PipeElement has executed the flow method
 
+    n_output : int
+        The number of outputs produced
+
     configured : bool
         If the PipeElement is configured
 
@@ -112,9 +115,15 @@ class PipeElement(Base):
         kwargs.pop("unconfigured_upstream", None)
         kwargs.pop("unconfigured_downstream", None)
 
+        self._n_output = 0
+
         Base.__init__(self, **kwargs)
 
-    
+
+
+    @property
+    def n_output(self):
+        return self._n_output
 
     @property
     def configured(self):
@@ -189,10 +198,15 @@ class PipeElement(Base):
         )
         self._flow_postset_check(flow_data)
         self._executed = True
+        self._n_output = 1
 
         return (flow_data,)
 
-    
+    def reset(self):
+        """Resets the PipeElement"""
+        super().reset()
+        self._n_output = 0
+
 
     def attach_upstream(self, upstream):
         """Attaches an upstream PipeElement
@@ -231,21 +245,21 @@ class PipeElement(Base):
             self.downstream = (downstream,)
         else:
             raise AttributeError("Only one Downstream object may be set")
-            
+
     def detach_upstream(self, element=None):
         """Detaches all or only the given element from upstream elements
-        
+
         Arguments
         ------------------
         element : PipeElement
             The PipeElement that should be removed from the upstream elements
-        
+
         Raises
         ------------------
         ValueError
             When the given PipeElement is not part of the upstream elements
-        
-        
+
+
         """
         if element is None:
             self.upstream = tuple()
@@ -255,21 +269,21 @@ class PipeElement(Base):
             elements = list(self.upstream)
             elements.remove(element)
             self.upstream = tuple(elements)
-            
+
     def detach_downstream(self, element=None):
         """Detaches all or only the given element from downstream elements
-        
+
         Arguments
         ------------------
         element : PipeElement
             The PipeElement that should be removed from the downstream elements
-        
+
         Raises
         ------------------
         ValueError
             When the given PipeElement is not part of the downstream elements
-        
-        
+
+
         """
         if element is None:
             self.downstream = tuple()
@@ -279,7 +293,7 @@ class PipeElement(Base):
             elements = list(self.downstream)
             elements.remove(element)
             self.downstream = tuple(elements)
-        
+
 
     def add_requirement(self, *requirements):
         """Adds a requirement to the PipeElement
@@ -316,6 +330,7 @@ class PipeElement(Base):
             "input_columns",
             "output_columns",
             "_executed",
+            "_n_output",
             "requirements",
             "func",
             "_unconfigured_upstream",

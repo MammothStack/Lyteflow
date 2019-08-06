@@ -18,35 +18,46 @@ from lyteflow.kernels.base import PipeElement, FlowData
 
 
 class _Split(PipeElement):
-    """# TODO: Add module title
+    """Abstract class for all PipeElements that have multiple outputs
 
-    # TODO: add module description
-    
-    
-    
+    This class is a subclass of PipeElement and inherits and preserves most of its
+    functions. It only differs in that it allows multiple downstream elements to be
+    attached to this PipeElement. Due to multiple outputs being allowed the flow method
+    also needs to be adjusted to accommodate the multiple outputs produced from the
+    transform function.
+
+    There is an inherent conflict between the argument n_result in the constructor and
+    the amount of downstream elements given. n_result sets the expected results that
+    should be produced from the transform function. However n_result cannot be set
+    with multiple downstream elements as the amount of downstream elements is also used
+    to produce the amount of downstream elements set. If the n_result is set and
+    multiple downstream elements have been set then n_result will be changed to the
+    amount of downstream elements.
+
+    All other properties and methods have been kept from the super class PipeElement
+
+    Methods
+    --------------
+    flow(x)
+        Receives FlowData from upstream, transforms, produces FlowData for downstream
+
+    attach_downstream(*downstream)
+        Attaches downstream PipeElements
 
     """
 
-    def __init__(self, n_output=None, **kwargs):
+    def __init__(self, n_result=None, **kwargs):
         """Constructor for _Split
 
-        TODO
-
-        """
-        self.n_output = n_output
-        PipeElement.__init__(self, **kwargs)
-
-    def attach_downstream(self, *downstream):
-        """Attaches a downstream PipeElement
-
         Arguments
-        ------------------
-        *downstream : PipeElement
-            The PipeElements that should be added to downstream
-
+        ---------------
+        n_result : int
+            The amount of FlowData that should be produced. Will be changed to amount
+            of downstream elements if more than one downstream element is set
 
         """
-        self.downstream += downstream
+        self.n_result = n_result
+        PipeElement.__init__(self, **kwargs)
 
     def flow(self, x):
         """Receives FlowData from upstream, transforms, produces FlowData for downstream
@@ -94,8 +105,9 @@ class _Split(PipeElement):
         transformed_x = self.transform(x.data)
         self._flow_postset_check(*transformed_x)
         self._executed = True
+        self._n_output = self.n_result
 
-        if self.n_output is None:
+        if len(self.downstream) > 1:
             matched = zip([y for y in transformed_x], [d for d in self.downstream])
             return tuple(
                 FlowData(from_element=self, data=z[0], to_element=z[1]) for z in matched
@@ -105,6 +117,49 @@ class _Split(PipeElement):
                 FlowData(from_element=self, data=y, to_element=self.downstream[0])
                 for y in transformed_x
             )
+
+    def attach_downstream(self, *downstream):
+        """Attaches downstream PipeElements
+
+        Arguments
+        ------------------
+        *downstream : PipeElement
+            The PipeElements that should be added to downstream
+
+
+        """
+        self.downstream += downstream
+
+    def _flow_preset_check(self, x):
+        """Checks the preset configuration and data
+
+        Calls super and adds checks for the proper amount of outputs
+
+        Arguments
+        ---------------
+        x : FlowData
+            The data to be checked and set
+
+        Raises
+        ------------------
+        AttributeError
+            When not all preset PipeElements and Requirements have executed
+
+        ValueError
+            When the given FlowData is not addressed to this PipeElement
+
+        """
+
+        super()._flow_preset_check(x)
+        if self.n_result is None:
+            self.n_result = len(self.downstream)
+        else:
+            if self.n_result != len(self.downstream) and len(self.downstream) != 1:
+                self.n_result = len(self.downstream)
+                warnings.warn(
+                    f"n_result and multiple downstream elements set, n_result = "
+                    f"{self.n_result}"
+                )
 
     def _flow_postset_check(self, *x):
         """Checks the postset configuration and data
@@ -122,10 +177,9 @@ class _Split(PipeElement):
         ValueError
             When the amount of data produced does not match the set downstream elements
 
-
         """
 
-        if self.n_output is None:
+        if self.n_result != len(self.downstream):
             if len(x) != len(self.downstream):
                 raise ValueError(
                     f"{len(self.downstream)} Downstream elements require "
@@ -134,7 +188,7 @@ class _Split(PipeElement):
         else:
             if len(self.downstream) > 1:
                 raise AttributeError(
-                    f"When n_output is set only 1 downstream element can be set"
+                    f"When n_result is set only 1 downstream element can be set"
                 )
         try:
             self.output_dimensions = [y.shape for y in x]
@@ -144,15 +198,11 @@ class _Split(PipeElement):
 
 
 class Duplicator(_Split):
-    """
-    TODO: doc
-    """
+    """Duplicates the input
 
-    def __init__(self, **kwargs):
-        _Split.__init__(self, **kwargs)
+    Overrides the transform function in order to duplicate all the given inputs
+
+    """
 
     def transform(self, x):
-        if self.n_output is None:
-            return [x.copy() for i in range(len(self.downstream))]
-        else:
-            return [x.copy() for i in range(self.n_output)]
+        return [x.copy() for i in range(self.n_result)]
