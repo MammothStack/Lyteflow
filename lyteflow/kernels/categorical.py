@@ -34,7 +34,7 @@ class Categorizer(PipeElement):
     """
 
     def __init__(
-        self, columns=None, sparse=False, absent_ignore=False, keep=False, **kwargs
+        self, columns=None, sparse=False, ignore_absent=False, keep=False, **kwargs
     ):
         """Constructor for the Categorizer class
         
@@ -47,7 +47,7 @@ class Categorizer(PipeElement):
         sparse : bool (default=False)
             If the resulting columns should be converted to spare or dense matrix
 
-        absent_ignore : bool (default=False)
+        ignore_absent : bool (default=False)
             If any given columns are not found in the given data should be ignored.
             Execution will halt if false
 
@@ -68,7 +68,7 @@ class Categorizer(PipeElement):
             raise ValueError("Given columns has to be of type list or None")
 
         self.sparse = sparse
-        self.absent_ignore = absent_ignore
+        self.ignore_absent = ignore_absent
         self.keep = keep
 
     def transform(self, x):
@@ -100,7 +100,7 @@ class Categorizer(PipeElement):
                 x[col] = x[col].astype("category")
                 found_columns.append(col)
             except KeyError:
-                if self.absent_ignore:
+                if self.ignore_absent:
                     pass
                 else:
                     raise KeyError(f"could not find {col} in DataFrame")
