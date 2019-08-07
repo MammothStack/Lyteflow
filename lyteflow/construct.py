@@ -89,7 +89,7 @@ class PipeSystem(Base):
         self.elements_non_io = fetch_pipe_elements(self, ignore_inlets=True, ignore_outlets=True)
         self.all_elements = inlets + outlets + self.elements_non_io
         self.verbose = verbose
-        self.execution_sequence = PTGraph.get_execution_sequence_(self)
+        self.execution_sequence = PTGraph(self).get_execution_sequence()
 
     def flow(self, *inlet_data):
         """Initiates the flow of inlet_data to the PipeSystem Inlets
@@ -146,6 +146,7 @@ class PipeSystem(Base):
             for pipe_element in pbar:
                 pbar.set_description(f"Flowing {pipe_element.name}")
                 _execution(pipe_element, data_hold, output)
+            pbar.close()
         else:
             for pipe_element in self.execution_sequence:
                 _execution(pipe_element, data_hold, output)

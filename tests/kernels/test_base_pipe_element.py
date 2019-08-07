@@ -106,6 +106,12 @@ class TestConfig:
         with pytest.raises(ValueError):
             c_pe.reconfigure(i, r)
 
+    def test_reconfigure_wrong_elements(self, connected_pipe_elements):
+        i, r, o = connected_pipe_elements
+        c_pe = PipeElement.from_config(r.to_config(), element_id=True)
+        with pytest.raises(AttributeError):
+            c_pe.reconfigure(3, "str")
+
 
 class TestCanExecute:
     def test_non_executed_upstream(self, connected_pipe_elements_2):

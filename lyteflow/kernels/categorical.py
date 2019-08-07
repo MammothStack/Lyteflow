@@ -78,13 +78,18 @@ class Categorizer(PipeElement):
 
         Arguments
         ------------------
-        x : pandas.DataFrame
+        x : pd.DataFrame
             The data that should be transformed into categorical data
 
         Returns
         ------------------
-        x : pandas.DataFrame
+        x : pd.DataFrame
             Transformed data
+
+        Raises
+        ------------------
+        KeyError
+            When absent columns are not ignored and cannot be found in the given DataFrame
 
         """
         found_columns = []
@@ -105,5 +110,7 @@ class Categorizer(PipeElement):
             else:
                 return pd.get_dummies(x, columns=found_columns)
         else:
-            x[found_columns] = x[found_columns].apply(lambda i: i.cat.codes)
+            x.loc[:, found_columns] = x.loc[:, found_columns].apply(
+                lambda i: i.cat.codes
+            )
             return x

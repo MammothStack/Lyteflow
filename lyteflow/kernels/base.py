@@ -364,7 +364,8 @@ class PipeElement(Base):
             
         Returns
         ------------------
-        PipeElement object
+        pe : PipeElement
+            Instantiated but unconfigured PipeElement
         
         """
         _cls = getattr(importlib.import_module("lyteflow"), config["class_name"])

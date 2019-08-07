@@ -66,11 +66,20 @@ class Inlet(PipeElement):
 
         """
         if self.convert:
-            x = np.asarray(x)
-            self.input_dimensions = x.shape
-            if len(x.shape) == 1 or len(x.shape) == 2:
-                x = pd.DataFrame(x)
-                self.input_columns = x.columns
+            try:
+                self.input_dimensions = x.shape
+                if len(x.shape) <= 2:
+                    try:
+                        self.input_columns = x.columns
+                    except AttributeError:
+                        x = pd.DataFrame(x)
+                        self.input_columns = x.columns
+            except AttributeError:
+                x = np.asarray(x)
+                self.input_dimensions = x.shape
+                if len(x.shape) <= 2:
+                    x = pd.DataFrame(x)
+                    self.input_columns = x.columns
         return x
 
     def attach_upstream(self, upstream):
