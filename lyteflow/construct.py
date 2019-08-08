@@ -86,7 +86,9 @@ class PipeSystem(Base):
 
         self.inlets = inlets
         self.outlets = outlets
-        self.elements_non_io = fetch_pipe_elements(self, ignore_inlets=True, ignore_outlets=True)
+        self.elements_non_io = fetch_pipe_elements(
+            self, ignore_inlets=True, ignore_outlets=True
+        )
         self.all_elements = inlets + outlets + self.elements_non_io
         self.verbose = verbose
         self.execution_sequence = PTGraph(self).get_execution_sequence()
@@ -158,7 +160,7 @@ class PipeSystem(Base):
         self._executed = True
 
         return [output[outlet].data for outlet in self.outlets]
-        
+
     def reset(self):
         """Resets all the PipeElements and itself
         
@@ -168,8 +170,6 @@ class PipeSystem(Base):
         super().reset()
         for element in self.all_elements:
             element.reset()
-            
-        
 
     def to_config(self):
         """Gives a configuration dictionary of class arguments
@@ -204,8 +204,7 @@ class PipeSystem(Base):
         """
         with open(file_name, "w") as json_file:
             json.dump(self.to_config(), json_file, indent=4)
-        
-        
+
     @classmethod
     def from_config(cls, config):
         """Creates a PipeSystem from Pipesystem configuration
@@ -251,36 +250,36 @@ class PipeSystem(Base):
         json_str = file.read()
         config = json.loads(json_str)
         return cls.from_config(config)
-        
+
     def __len__(self):
         return len(self.all_elements)
-        
+
     def __contains__(self, element):
         return element in self.all_elements
-        
+
     def __add__(self, other):
         all_inlets = self.inlets + other.inlets
         all_outlets = self.outlets + other.outlets
         name = self.name + other.name
         return PipeSystem(inlets=all_inlets, outlets=all_outlets, name=name)
-        
+
     def __mul__(self, other):
         if len(self.outlets) != len(other.outlets):
-            raise ValueError(f"Number of outlets does not match number of inlets. Out: {self.outlets} != In: {other.inlets}")
-            
+            raise ValueError(
+                f"Number of outlets does not match number of inlets. Out: {self.outlets} != In: {other.inlets}"
+            )
+
         inlets = self.inlets
         outlets = other.outlets
-        
+
         for outlet, inlet in zip(self.outlets, other.inlets):
             up = outlet.upstream[0]
             down = inlet.downstream[0]
             up.detach_downstream()
             down.detach_upstream()
-            
+
             down(PipeElement(name=outlet.name + inlet.name)(up))
 
-            
         name = self.name + other.name
-            
+
         return PipeSystem(inlets=inlets, outlets=outlets, name=name)
-        

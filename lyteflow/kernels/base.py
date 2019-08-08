@@ -119,8 +119,6 @@ class PipeElement(Base):
 
         Base.__init__(self, **kwargs)
 
-
-
     @property
     def n_output(self):
         return self._n_output
@@ -207,7 +205,6 @@ class PipeElement(Base):
         super().reset()
         self._n_output = 0
 
-
     def attach_upstream(self, upstream):
         """Attaches an upstream PipeElement
 
@@ -293,7 +290,6 @@ class PipeElement(Base):
             elements = list(self.downstream)
             elements.remove(element)
             self.downstream = tuple(elements)
-
 
     def add_requirement(self, *requirements):
         """Adds a requirement to the PipeElement

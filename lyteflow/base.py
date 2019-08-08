@@ -56,7 +56,7 @@ class Base:
         self._executed = False
         self.name = kwargs.get("name", self.__class__.__name__)
         self.id = kwargs.get("id", id(self))
-        
+
     @property
     def executed(self):
         return self._executed
@@ -64,7 +64,7 @@ class Base:
     def flow(self, x):
         """Method to be implemented by its subclasses"""
         raise NotImplementedError
-        
+
     def reset(self):
         """Resets the attributes"""
         self.input_columns, self.input_dimensions = None, None

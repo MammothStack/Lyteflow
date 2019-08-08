@@ -21,7 +21,7 @@ class ColumnFilter(PipeElement):
     """A filter applied to columns selecting only the given columns of the DataFrame
 
     This is a subclass of PipeElement and therefore inherits all of its functions
-    except for the transform function, which is overriden.
+    except for the transform function, which is overridden.
 
     Methods
     ------------------
@@ -39,7 +39,7 @@ class ColumnFilter(PipeElement):
             A list of columns that should be filtered for
 
         ignore_absent : bool
-            If columns which are not found in the given columns should be ignore or
+            If columns which are not found in the given columns should be ignored or
             should throw an error
 
         """
@@ -74,3 +74,62 @@ class ColumnFilter(PipeElement):
             )
         else:
             return x.loc[:, found_columns]
+
+
+class IndexFilter(PipeElement):
+    """A filter applied to index selecting only the given index of the DataFrame
+
+    This is a subclass of PipeElement and therefore inherits all of its functions
+    except for the transform function, which is overridden.
+
+    Methods
+    ------------------
+    transform(x)
+        Filters the index on the given DataFrame
+
+    """
+
+    def __init__(self, index, ignore_absent=False, **kwargs):
+        """Constructor
+
+        Arguments
+        ------------------
+        index : list
+            A list of indices that should be filtered for
+
+        ignore_absent : bool
+            If indices which are not found in the given index should be ignored or
+            should throw an error
+
+        """
+        PipeElement.__init__(self, **kwargs)
+        self.index = index
+        self.ignore_absent = ignore_absent
+
+    def transform(self, x):
+        """Filters the DataFrame for the given index
+
+        Arguments
+        ------------------
+        x : pd.DataFrame
+            The DataFrame that should be filtered
+
+        Returns
+        ------------------
+        x : pd.DataFrame
+            Filtered DataFrame
+
+        Raises
+        ------------------
+        KeyError
+            When the ignore_absent is False and the set index is not found in the given
+            DataFrame
+
+        """
+        found_indices = x.index.intersection(self.index)
+        if len(found_indices) != len(self.index) and not self.ignore_absent:
+            raise KeyError(
+                f"{set(self.index).difference(x.index)} not found in the DataFrame"
+            )
+        else:
+            return x.loc[found_indices, :]
