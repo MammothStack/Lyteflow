@@ -25,7 +25,7 @@ def fetch_pipe_elements(pipesystem, ignore_inlets=False, ignore_outlets=False):
     """Iterates through the PipeSystem and returns a list of all PipeElements"""
 
     def traverse(element):
-        if element is None:
+        if element is None or element in elements:
             return
 
         if element not in elements:

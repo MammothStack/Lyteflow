@@ -154,7 +154,7 @@ class PipeSystem(Base):
         self.input_columns = [x.input_columns for x in self.inlets]
         self.output_dimensions = [x.output_dimensions for x in self.outlets]
         self.output_columns = [x.output_columns for x in self.outlets]
-        self._execute = True
+        self._executed = True
 
         return [output[outlet].data for outlet in self.outlets]
         
