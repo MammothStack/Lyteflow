@@ -105,16 +105,13 @@ class PTGraph:
 
         """
 
-        # Get all pipe elements
-        all_elements = fetch_pipe_elements(ps)
-
         # Dictionary with _Transitions with PipeElement.id as key
         transitions = {
             pipe_element.id: _Transition(
                 pipe_element=pipe_element,
                 meta_node=_Node(name=pipe_element.name + "_meta"),
             )
-            for pipe_element in all_elements
+            for pipe_element in ps.all_elements
         }
 
         # Iterate transitions and create nodes and connect to other nodes

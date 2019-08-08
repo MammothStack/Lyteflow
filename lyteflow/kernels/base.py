@@ -231,6 +231,55 @@ class PipeElement(Base):
             self.downstream = (downstream,)
         else:
             raise AttributeError("Only one Downstream object may be set")
+            
+    def detach_upstream(self, element=None):
+        """Detaches all or only the given element from upstream elements
+        
+        Arguments
+        ------------------
+        element : PipeElement
+            The PipeElement that should be removed from the upstream elements
+        
+        Raises
+        ------------------
+        ValueError
+            When the given PipeElement is not part of the upstream elements
+        
+        
+        """
+        if element is None:
+            self.upstream = tuple()
+        else:
+            if element not in self.upstream:
+                raise ValueError(f"{element} is not a upstream element")
+            elements = list(self.upstream)
+            elements.remove(element)
+            self.upstream = tuple(elements)
+            
+    def detach_downstream(self, element=None):
+        """Detaches all or only the given element from downstream elements
+        
+        Arguments
+        ------------------
+        element : PipeElement
+            The PipeElement that should be removed from the downstream elements
+        
+        Raises
+        ------------------
+        ValueError
+            When the given PipeElement is not part of the downstream elements
+        
+        
+        """
+        if element is None:
+            self.downstream = tuple()
+        else:
+            if element not in self.downstream:
+                raise ValueError(f"{element} is not a downstream element")
+            elements = list(self.downstream)
+            elements.remove(element)
+            self.downstream = tuple(elements)
+        
 
     def add_requirement(self, *requirements):
         """Adds a requirement to the PipeElement

@@ -47,12 +47,12 @@ def complex_pipesystem():
 
 @pytest.fixture()
 def basic_pipesystem_json():
-    return PipeSystem.from_json(json_file_name="ps_simple.json")
+    return PipeSystem.from_json(json_file_name="tests/ps_simple.json")
 
 
 @pytest.fixture()
 def complex_pipesystem_json():
-    return PipeSystem.from_json(json_file_name="ps_complex.json")
+    return PipeSystem.from_json(json_file_name="tests/ps_complex.json")
 
 
 class TestPipeSystemConfig(object):
