@@ -8,8 +8,6 @@ This module contains the base class from which pipe elements should be subclasse
 import importlib
 import warnings
 
-# Third party imports
-
 # Local application imports
 from lyteflow.base import Base
 
@@ -114,13 +112,9 @@ class PipeElement(Base):
         kwargs.pop("unconfigured_upstream", None)
         kwargs.pop("unconfigured_downstream", None)
 
-        self._executed = False
-
         Base.__init__(self, **kwargs)
 
-    @property
-    def executed(self):
-        return self._executed
+    
 
     @property
     def configured(self):
@@ -198,11 +192,7 @@ class PipeElement(Base):
 
         return (flow_data,)
 
-    def reset(self):
-        """Resets the PipeElement"""
-        self.input_columns, self.input_dimensions = None, None
-        self.output_columns, self.output_dimensions = None, None
-        self._executed = False
+    
 
     def attach_upstream(self, upstream):
         """Attaches an upstream PipeElement

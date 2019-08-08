@@ -86,6 +86,8 @@ class PipeSystem(Base):
 
         self.inlets = inlets
         self.outlets = outlets
+        self._elements_non_io = fetch_pipe_elements(self, ignore_inlets=True, ignore_outlets=True)
+        self._all_elements = inlets + outlets + self._elements_non_io
         self.verbose = verbose
         self.execution_sequence = PTGraph.get_execution_sequence_(self)
 
@@ -131,7 +133,7 @@ class PipeSystem(Base):
                 f"but only {len(inlet_data)} were given"
             )
 
-        data_hold = {e: [] for e in fetch_pipe_elements(self)}
+        data_hold = {e: [] for e in self._all_elements}
         output = {}
 
         for i in range(len(self.inlets)):
@@ -152,8 +154,21 @@ class PipeSystem(Base):
         self.input_columns = [x.input_columns for x in self.inlets]
         self.output_dimensions = [x.output_dimensions for x in self.outlets]
         self.output_columns = [x.output_columns for x in self.outlets]
+        self._execute = True
 
         return [output[outlet].data for outlet in self.outlets]
+        
+    def reset(self):
+        """Resets all the PipeElements and itself
+        
+        
+        
+        """
+        super().reset()
+        for element in self._all_elements:
+            element.reset()
+            
+        
 
     def to_config(self):
         """Gives a configuration dictionary of class arguments
@@ -170,14 +185,10 @@ class PipeSystem(Base):
 
         """
 
-        elements = fetch_pipe_elements(
-            pipesystem=self, ignore_inlets=True, ignore_outlets=True
-        )
-
         return {
             "inlets": [e.to_config() for e in self.inlets],
             "outlets": [e.to_config() for e in self.outlets],
-            "elements": [e.to_config() for e in elements],
+            "elements": [e.to_config() for e in self._elements_non_io],
             "name": self.name,
         }
 
@@ -238,3 +249,9 @@ class PipeSystem(Base):
         json_str = file.read()
         config = json.loads(json_str)
         return cls.from_config(config)
+        
+    def __len__(self):
+        return len(self._all_elements)
+        
+    def __contains__(self, element):
+        return element in self._all_elements
