@@ -20,6 +20,7 @@ class:
 ```python
 from lyteflow.construct import PipeSystem
 from lyteflow.kernels import *
+from tests.sample import images, labels
 
 in_1 = Inlet(convert=False, name="in_1")
 sca = Scaler(scalar=1 / 255)(in_1)
@@ -46,7 +47,7 @@ The resulting PipeSystem will look as follows:
 In order to create visualizations just import the plot_pipe_system method from the _visualize_ module
 ```python
 from lyteflow.visualize import plot_pipe_system
-from lyteflow.sample import ps_complex_req
+from tests.sample import ps_complex_req
 
 plot_pipe_system(ps_complex_req, file_name="pipe_system.png")
 ```

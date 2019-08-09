@@ -120,7 +120,7 @@ class Separator(PipeElement):
     
     This class is ideal for extracting categorical string data from columns that
     have comma separate values. The character or string at which the contents are
-    seperated can be set by the delimiter argument. The columns argument will
+    separated can be set by the delimiter argument. The columns argument will
     determine on which columns this extraction is applied. If None are given then
     the transformation is applied to each column of the given DataFrame in
     the transform method.
@@ -143,7 +143,8 @@ class Separator(PipeElement):
     
         >>> from lyteflow.kernels.str import Separator
         >>> import pandas as pd
-        >>> df = pd.DataFrame([["apple, pear", "banana, pear"],["pear, banana", "apple, banana"]], columns=["a","b"])
+        >>> df = pd.DataFrame( [["apple, pear", "banana, pear"],["pear, banana",
+            "apple, banana"]], columns=["a","b"])
         >>> df
                       a              b
         0   apple, pear   banana, pear
@@ -157,7 +158,8 @@ class Separator(PipeElement):
     Using multiple columns and multiple delimiters to categorise:
         >>> from lyteflow.kernels.str import Separator
         >>> import pandas as pd
-        >>> df = pd.DataFrame([["apple; pear / banana", "pear; apple"],["pear,; banana", "apple"]], columns=["a","b"])
+        >>> df = pd.DataFrame( [["apple; pear / banana", "pear; apple"],["pear,; banana",
+            "apple"]], columns=["a","b"])
         >>> df
                               a            b
         0  apple; pear / banana  pear; apple

@@ -284,9 +284,10 @@ class TestFlow:
             c_pe.flow(random_flow_data)
 
 
-"""
-TODO: Test attachment
-TODO: Test detachment
-TODO: Test attributes
+class TestAttachment:
+    pass
 
-"""
+
+# TODO: Test attachment
+# TODO: Test detachment
+# TODO: Test attributes

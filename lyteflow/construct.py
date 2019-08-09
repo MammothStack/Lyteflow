@@ -8,8 +8,6 @@ satisfy reachability in the PipeSystem's current configuration.
 
 # Standard library imports
 import json
-import warnings
-import sys
 
 # Third party imports
 from tqdm import tqdm
@@ -303,7 +301,8 @@ class PipeSystem(Base):
     def __mul__(self, other):
         if len(self.outlets) != len(other.outlets):
             raise ValueError(
-                f"Number of outlets does not match number of inlets. Out: {self.outlets} != In: {other.inlets}"
+                f"Number of outlets does not match number of inlets. Out: "
+                f"{self.outlets} != In: {other.inlets}"
             )
 
         inlets = self.inlets

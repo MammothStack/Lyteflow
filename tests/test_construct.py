@@ -45,6 +45,26 @@ def complex_pipesystem():
 
 
 @pytest.fixture()
+def complex_pipe_system_req():
+    in_1 = Inlet(convert=False, name="in_1")
+    sca = Scaler(scalar=1 / 255)(in_1)
+    rot = Rotator([90, -90], remove_padding=False, keep_original=True)(sca)
+    out_1 = Outlet(name="out_1")(rot)
+
+    in_2 = Inlet(convert=True, name="in_2")
+    cat = Categorizer(sparse=True)(in_2)
+    dup = Duplicator()(cat)
+    con = Concatenator()(dup)
+    out_2 = Outlet(name="out_2")(con)
+
+    dup.add_requirement(Requirement(rot, attribute="n_rotations", argument="n_result"))
+
+    return PipeSystem(
+        inlets=[in_1, in_2], outlets=[out_1, out_2], name="ps", verbose=True
+    )
+
+
+@pytest.fixture()
 def basic_pipesystem_json():
     return PipeSystem.from_json(json_file_name="tests/ps_simple.json")
 
@@ -90,21 +110,23 @@ class TestPipeSystemConfig(object):
 
         assert (res[0] == res_json[0]).all() and ((res[1] == res_json[1]).all().all())
 
-    # TODO: test requirement
+    def tests_to_from_config_req(self, complex_pipe_system_req, images, labels):
+        before = complex_pipe_system_req.flow(images, labels)
+        after = PipeSystem.from_config(complex_pipe_system_req.to_config()).flow(
+            images, labels
+        )
+
+        assert (before[0] == after[0]).all() and (before[1] == after[1]).all().all()
 
 
-"""
-
-TODO: Test inlets
-TODO: Test outlets
-TODO: Test Execution sequence
-TODO: Test flow
-TODO: Test reset
-TODO: Test contains
-TODO: Test length
-TODO: Test addition
-TODO: Test multiplication
-TODO: Test new addition
-TODO: Test new multiplication
-
-"""
+# TODO: Test inlets
+# TODO: Test outlets
+# TODO: Test Execution sequence
+# TODO: Test flow
+# TODO: Test reset
+# TODO: Test contains
+# TODO: Test length
+# TODO: Test addition
+# TODO: Test multiplication
+# TODO: Test new addition
+# TODO: Test new multiplication
