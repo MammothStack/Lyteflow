@@ -10,18 +10,12 @@ import os
 
 # Third party imports
 try:
-    # pydot-ng is a fork of pydot that is better maintained.
-    import pydot_ng as pydot
+    import pydotplus as pydot
 except ImportError:
-    # pydotplus is an improved version of pydot
     try:
-        import pydotplus as pydot
+        import pydot
     except ImportError:
-    # Fall back on pydot if necessary.
-        try:
-            import pydot
-        except ImportError:
-            raise ImportError("pydot_ng, pydotplus, or pydot need to be installed")
+        raise ImportError("pydotplus, or pydot need to be installed")
 
 # Local application imports
 from lyteflow.construct import PipeSystem
@@ -53,7 +47,7 @@ def _pipe_system_to_dot(pipe_system):
         for down in element.downstream:
             dot.add_edge(pydot.Edge(str(element.id), str(down.id)))
         for req in element.requirements:
-            dot.add_edge(pydot.Edge(str(req.pipe_element.id), str(element.id), style="dashed", label="Requirement"))
+            dot.add_edge(pydot.Edge(str(req.pipe_element.id), str(element.id), style="dashed", label=f"Requirement\n{req.attribute}"))
     
     return dot
 
@@ -68,7 +62,11 @@ def plot_pipe_system(pipe_system, file_name="pipe_system.png"):
         
     file_name : str
         The name of the file that is produced
-    
+        
+    Returns
+    ------------------
+    image : IPython.display.Image
+        If run in a notebook this method will return the image
     
     """
     

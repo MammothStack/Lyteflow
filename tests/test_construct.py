@@ -89,6 +89,8 @@ class TestPipeSystemConfig(object):
         res_json = basic_pipesystem_json.flow(images, labels)
 
         assert (res[0] == res_json[0]).all() and ((res[1] == res_json[1]).all().all())
+        
+    # TODO: test requirement
 
 """
 
