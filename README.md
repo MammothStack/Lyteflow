@@ -40,6 +40,7 @@ processed_images, processed_labels = ps.flow(images, labels)
 ```
 
 The resulting PipeSystem will look as follows:
+
 ![pipe_system image](pipe_system.png "PipeSystem")
 
 In order to create visualizations just import the plot_pipe_system method from the _visualize_ module
