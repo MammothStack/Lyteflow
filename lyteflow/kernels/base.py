@@ -75,8 +75,11 @@ class PipeElement(Base):
 
     Properties
     ----------------
+    n_input : int
+        The number of inputs received in flow
+        
     n_output : int
-        The number of outputs produced
+        The number of outputs produced in flow
 
     configured : bool
         If the PipeElement is configured
@@ -121,9 +124,14 @@ class PipeElement(Base):
         kwargs.pop("unconfigured_upstream", None)
         kwargs.pop("unconfigured_downstream", None)
 
-        self._n_output = 0
+        self._n_output = None
+        self._n_input = None
 
         Base.__init__(self, **kwargs)
+        
+    @property
+    def n_input(self):
+        return self._n_input
 
     @property
     def n_output(self):
@@ -194,7 +202,7 @@ class PipeElement(Base):
             When the given FlowData is not addressed to this PipeElement
 
         """
-
+        self._n_input = 1
         self._flow_preset_check(x)
         to_element = self.downstream[0] if self.downstream != tuple() else None
         flow_data = FlowData(
@@ -209,7 +217,8 @@ class PipeElement(Base):
     def reset(self):
         """Resets the PipeElement"""
         super().reset()
-        self._n_output = 0
+        self._n_output = None
+        self._n_input = None
 
     def attach_upstream(self, upstream):
         """Attaches an upstream PipeElement
@@ -333,6 +342,7 @@ class PipeElement(Base):
             "output_columns",
             "_executed",
             "_n_output",
+            "_n_input",
             "requirements",
             "func",
             "_unconfigured_upstream",
@@ -532,17 +542,11 @@ class PipeElement(Base):
                 requirement.argument,
                 requirement.pipe_element.__getattribute__(requirement.attribute),
             )
-            # TODO: investigate
-
         try:
-            
             self.input_dimensions = x.data.shape
             self.input_columns = x.data.columns
-            print(self.input_dimensions)
         except AttributeError:
             pass
-        print("preset in", self.input_dimensions)
-        print("preset out", self.output_dimensions)
 
     def _flow_postset_check(self, x):
         """Checks the postset configuration and data
@@ -553,13 +557,12 @@ class PipeElement(Base):
             The data to be checked and set
 
         """
+        
         try:
             self.output_dimensions = x.data.shape
             self.output_columns = x.data.columns
         except AttributeError:
             pass
-        print("postset in", self.input_dimensions)
-        print("postset out", self.output_dimensions)
 
     def __call__(self, upstream):
         """Attaches the given PipeElement in both directions

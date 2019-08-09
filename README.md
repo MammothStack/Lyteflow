@@ -12,6 +12,11 @@ Lyteflow is to ensure consistent, simple, and sequential data transformations. A
 git clone https://github.com/MammothStack/Lyteflow.git Lyteflow
 ```
 ## Usages
+Concurrent data pipelines can be created with dependencies between each transformation.
+Here the images are rotated n times (this can be ambiguous as rotations such as 10 and 370 degrees are the same thing)
+and so the labels also need to be duplicated n number of times. This dependecy is created through the Requirement
+class:
+
 ```python
 from lyteflow.construct import PipeSystem
 from lyteflow.kernels import *
@@ -27,12 +32,23 @@ dup = Duplicator()(cat)
 con = Concatenator()(dup)
 out_2 = Outlet(name="out_2")(con)
 
-dup.add_requirement(Requirement(rot, attribute="n_output", argument="n_result"))
+dup.add_requirement(Requirement(rot, attribute="n_rotations", argument="n_result"))
 
 ps = PipeSystem(inlets=[in_1, in_2], outlets=[out_1, out_2], name="ps", verbose=True)
 
 processed_images, processed_labels = ps.flow(images, labels)
 ```
+
+The resulting PipeSystem will look as follows:
+![pipe_system image](pipe_system.png "PipeSystem")
+
+In order to create visualizations just import the plot_pipe_system method from the _visualize_ module
+```python
+from lyteflow.visualize import plot_pipe_system
+from lyteflow.sample import ps_complex_req
+
+plot_pipe_system(ps_complex_req, file_name="pipe_system.png")
+´´´
 ## Authors
 Patrick Bogner
 ## License

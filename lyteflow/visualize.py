@@ -39,7 +39,7 @@ def _pipe_system_to_dot(pipe_system):
     for element in pipe_system.all_elements:
         element_class = element.__class__.__name__
         in_dim = str(element.input_dimensions)
-        out_dim = str(element.input_dimensions)
+        out_dim = str(element.output_dimensions)
         label = "{ In: %s | %s : %s | Out: %s }" % (in_dim, element_class, element.name, out_dim)
         
         if isinstance(element, Inlet) or isinstance(element, Outlet):
@@ -68,9 +68,6 @@ def plot_pipe_system(pipe_system, file_name="pipe_system.png"):
         
     file_name : str
         The name of the file that is produced
-    
-    Raises
-    ------------------
     
     
     """
