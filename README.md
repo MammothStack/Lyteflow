@@ -27,7 +27,7 @@ dup = Duplicator()(cat)
 con = Concatenator()(dup)
 out_2 = Outlet(name="out_2")(con)
 
-dup.add_requirement(Requirement(rot, attribute="n_output", argument="n_output"))
+dup.add_requirement(Requirement(rot, attribute="n_output", argument="n_result"))
 
 ps = PipeSystem(inlets=[in_1, in_2], outlets=[out_1, out_2], name="ps", verbose=True)
 

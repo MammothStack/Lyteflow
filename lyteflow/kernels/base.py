@@ -487,9 +487,9 @@ class PipeElement(Base):
                 
         for req in self._unconfigured_requirements:
             if req["pipe_element"] in id_element.keys():
-                requirements.append(Requirement.from_config(req, id_element[req["pipe_element"]))
+                requirements.append(Requirement.from_config(req, id_element[req["pipe_element"]]))
             else:
-                raise ValueError(f"Requirement {req} could not be reconfigured as {req["pipe_element"]} was missing from the given pipe_element")
+                raise ValueError(f"Requirement {req} could not be reconfigured as {req['pipe_element']} was missing from the given pipe_element")
         
         self.downstream = tuple(downstream)
         self.upstream = tuple(upstream)
@@ -532,12 +532,17 @@ class PipeElement(Base):
                 requirement.argument,
                 requirement.pipe_element.__getattribute__(requirement.attribute),
             )
+            # TODO: investigate
 
         try:
+            
             self.input_dimensions = x.data.shape
             self.input_columns = x.data.columns
+            print(self.input_dimensions)
         except AttributeError:
             pass
+        print("preset in", self.input_dimensions)
+        print("preset out", self.output_dimensions)
 
     def _flow_postset_check(self, x):
         """Checks the postset configuration and data
@@ -553,6 +558,8 @@ class PipeElement(Base):
             self.output_columns = x.data.columns
         except AttributeError:
             pass
+        print("postset in", self.input_dimensions)
+        print("postset out", self.output_dimensions)
 
     def __call__(self, upstream):
         """Attaches the given PipeElement in both directions
