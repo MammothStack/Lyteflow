@@ -218,6 +218,7 @@ class PipeSystem(Base):
         Returns
         ------------------
         PipeSystem
+            Configured PipeSystem
         
         """
         inlets = [Inlet.from_config(c, element_id=True) for c in config["inlets"]]
@@ -250,30 +251,32 @@ class PipeSystem(Base):
         json_str = file.read()
         config = json.loads(json_str)
         return cls.from_config(config)
-        
+
     @staticmethod
     def _add(*add):
         all_inlets = [inlet for pipe_system in add for inlet in pipe_system.inlets]
         all_outlets = [outlet for pipe_system in add for outlet in pipe_system.outlets]
         name = ": ".join([pipe_system.name for pipe_system in add])
         return PipeSystem(inlets=all_inlets, outlets=all_outlets, name=name)
-        
+
     @staticmethod
     def _extend(*extend):
         for i, ps in enumerate(extend):
             if i > 0:
-                if len(extend[i-1].outlets) != len(extend[i].inlets):
-                    raise ValueError(f"{extend[i-1]} outlets do not match amount of {extend[i]} inlets")
+                if len(extend[i - 1].outlets) != len(extend[i].inlets):
+                    raise ValueError(
+                        f"{extend[i-1]} outlets do not match amount of {extend[i]} inlets"
+                    )
         if len(extend) < 2:
             raise ValueError("At least more than 1 PipeSystem needs to be given")
-            
+
         inlets = extend[0].inlets
         outlets = extend[-1].outlets
         name = ""
-        
+
         for i, ps in enumerate(extend):
             if i > 0:
-                for outlet, inlet in zip(extend[i-1].outlets, extend[i].inlets):
+                for outlet, inlet in zip(extend[i - 1].outlets, extend[i].inlets):
                     up = outlet.upstream[0]
                     down = inlet.downstream[0]
                     up.detach_downstream()
@@ -282,7 +285,7 @@ class PipeSystem(Base):
                     down(PipeElement(name=outlet.name + inlet.name)(up))
 
             name += ps.name
-        
+
         return PipeSystem(inlets=inlets, outlets=outlets, name=name)
 
     def __len__(self):

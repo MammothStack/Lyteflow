@@ -133,7 +133,8 @@ class IndexFilter(PipeElement):
             )
         else:
             return x.loc[found_indices, :]
-            
+
+
 class Filter(PipeElement):
     """A filter applied to index and columns of the given DataFrame
 
@@ -147,7 +148,14 @@ class Filter(PipeElement):
 
     """
 
-    def __init__(self, index=None, columns=None, ignore_absent_index=False, ignore_absent_columns=False, **kwargs):
+    def __init__(
+        self,
+        index=None,
+        columns=None,
+        ignore_absent_index=False,
+        ignore_absent_columns=False,
+        **kwargs,
+    ):
         """Constructor
 
         Arguments
@@ -206,9 +214,11 @@ class Filter(PipeElement):
             self.columns = x.columns
         else:
             found_columns = x.columns.intersection(self.columns)
-            if len(found_columns) != len(self.columns) and not self.ignore_absent_columns:
+            if (
+                len(found_columns) != len(self.columns)
+                and not self.ignore_absent_columns
+            ):
                 raise KeyError(
                     f"{set(self.columns).difference(x.columns)} not found in the DataFrame"
                 )
         return x.loc[found_indices, found_columns]
-    

@@ -61,7 +61,6 @@ class _Split(PipeElement):
             raise ValueError("Expected number of outputs cannot be less than 1")
         self.n_result = n_result
         PipeElement.__init__(self, **kwargs)
-        
 
     def flow(self, x):
         """Receives FlowData from upstream, transforms, produces FlowData for downstream

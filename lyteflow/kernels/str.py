@@ -34,6 +34,7 @@ import pandas as pd
 # Local application imports
 from lyteflow.kernels.base import PipeElement
 
+
 def _split_with_delimiter(string, regex_delimiter):
     """Split the given string with regex delimiter
     
@@ -51,9 +52,10 @@ def _split_with_delimiter(string, regex_delimiter):
         List of split strings
         
     """
-    
+
     return re.split(regex_delimiter, string)
-    
+
+
 def _strip_string(*string):
     """Strips each element of the given list
     
@@ -69,7 +71,8 @@ def _strip_string(*string):
     
     """
     return [x.strip() for x in string]
-    
+
+
 def _split_strip_string(string, regex_delimiter):
     """Splits the string and strips its splits
     
@@ -88,8 +91,8 @@ def _split_strip_string(string, regex_delimiter):
     
     """
     return _strip_string(*_split_with_delimiter(string, regex_delimiter))
-    
-    
+
+
 def _convert_delimiters_to_regex(*delimiters):
     """Converts a list of strings into a regex
     
@@ -104,8 +107,9 @@ def _convert_delimiters_to_regex(*delimiters):
         The converted string
     
     """
-    
+
     return "|".join(delimiters)
+
 
 class Separator(PipeElement):
     """Separate strings in columns and categorise them
@@ -166,7 +170,7 @@ class Separator(PipeElement):
         
         
     """
-    
+
     def __init__(self, columns=None, delimiter=",", **kwargs):
         """Constructor
         
@@ -183,7 +187,7 @@ class Separator(PipeElement):
         self.columns = columns
         self.delimiter = delimiter
         PipeElement.__init__(self, **kwargs)
-        
+
     def transform(self, x):
         """Splits and categorises the data based on the columns and delimiter given
         
@@ -211,18 +215,18 @@ class Separator(PipeElement):
         
         
         """
-        
+
         if self.columns is None:
             self.columns = x.columns
         else:
             if not all([c in x.columns for c in self.columns]):
                 raise KeyError("Not all given columns found in DataFrame")
-                
+
         if isinstance(self.delimiter, str):
             regex_delimiter = _convert_delimiters_to_regex(self.delimiter)
         else:
             regex_delimiter = _convert_delimiters_to_regex(*self.delimiter)
-        
+
         for column in self.columns:
             series = x[column].map(
                 lambda x: _split_strip_string(string=x, regex_delimiter=regex_delimiter)
@@ -230,7 +234,5 @@ class Separator(PipeElement):
             unique = set([x for l in series.tolist() for x in l])
             sub_columns = [column + "_" + u for u in unique]
             for u, col in zip(unique, sub_columns):
-                x[col] = series.map(lambda y : u in y).astype(int)
+                x[col] = series.map(lambda y: u in y).astype(int)
         return x
-    
-    

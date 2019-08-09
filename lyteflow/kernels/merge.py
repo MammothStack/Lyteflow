@@ -91,8 +91,9 @@ class _Merge(PipeElement):
             When the given FlowData is not addressed to this PipeElement
             
         """
-        self._n_input = len(x)
+
         self._flow_preset_check(*x)
+        self._n_input = len(x)
         flow_data = FlowData(
             from_element=self,
             data=self.transform([fd.data for fd in x]),

@@ -128,7 +128,7 @@ class PipeElement(Base):
         self._n_input = None
 
         Base.__init__(self, **kwargs)
-        
+
     @property
     def n_input(self):
         return self._n_input
@@ -452,7 +452,7 @@ class PipeElement(Base):
             self._unconfigured_downstream = None
             self._unconfigured_upstream = None
             self._unconfigured_requirements = None
-            
+
     def reconfigure_alt(self, *pipe_element):
         """Reconfigures all unconfigured PipeElements and Requirements from config
 
@@ -477,30 +477,38 @@ class PipeElement(Base):
             the references
 
         """
-        upstream =  []
+        upstream = []
         downstream = []
         requirements = []
-        
-        id_element = {e.id : e for e in pipe_element}
-        
+
+        id_element = {e.id: e for e in pipe_element}
+
         for pe_id in self._unconfigured_downstream:
             if pe_id in id_element.keys():
                 downstream.append(id_element[pe_id])
             else:
-                raise ValueError(f"PipeElement {pe_id} was not found in the given PipeElements")
+                raise ValueError(
+                    f"PipeElement {pe_id} was not found in the given PipeElements"
+                )
 
         for pe_id in self._unconfigured_upstream:
             if pe_id in id_element.keys():
                 upstream.append(id_element[pe_id])
             else:
-                raise ValueError(f"PipeElement {pe_id} was not found in the given PipeElements")
-                
+                raise ValueError(
+                    f"PipeElement {pe_id} was not found in the given PipeElements"
+                )
+
         for req in self._unconfigured_requirements:
             if req["pipe_element"] in id_element.keys():
-                requirements.append(Requirement.from_config(req, id_element[req["pipe_element"]]))
+                requirements.append(
+                    Requirement.from_config(req, id_element[req["pipe_element"]])
+                )
             else:
-                raise ValueError(f"Requirement {req} could not be reconfigured as {req['pipe_element']} was missing from the given pipe_element")
-        
+                raise ValueError(
+                    f"Requirement {req} could not be reconfigured as {req['pipe_element']} was missing from the given pipe_element"
+                )
+
         self.downstream = tuple(downstream)
         self.upstream = tuple(upstream)
         self.requirements = set(requirements)
@@ -557,7 +565,7 @@ class PipeElement(Base):
             The data to be checked and set
 
         """
-        
+
         try:
             self.output_dimensions = x.data.shape
             self.output_columns = x.data.columns
