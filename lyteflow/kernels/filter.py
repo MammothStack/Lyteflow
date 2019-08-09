@@ -210,6 +210,5 @@ class Filter(PipeElement):
                 raise KeyError(
                     f"{set(self.columns).difference(x.columns)} not found in the DataFrame"
                 )
-        else:
-            return x.loc[found_indices, found_columns]
+        return x.loc[found_indices, found_columns]
     

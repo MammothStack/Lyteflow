@@ -6,3 +6,4 @@ from .split import *
 from .img import *
 from .stat import *
 from .filter import *
+from .str import *
