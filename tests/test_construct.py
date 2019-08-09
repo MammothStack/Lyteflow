@@ -89,3 +89,19 @@ class TestPipeSystemConfig(object):
         res_json = basic_pipesystem_json.flow(images, labels)
 
         assert (res[0] == res_json[0]).all() and ((res[1] == res_json[1]).all().all())
+
+"""
+
+TODO: Test inlets
+TODO: Test outlets
+TODO: Test Execution sequence
+TODO: Test flow
+TODO: Test reset
+TODO: Test contains
+TODO: Test length
+TODO: Test addition
+TODO: Test multiplication
+TODO: Test new addition
+TODO: Test new multiplication
+
+"""

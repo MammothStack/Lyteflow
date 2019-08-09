@@ -1,6 +1,9 @@
 """The base class for all subclassed PipeElements
 
-This module contains the base class from which pipe elements should be subclassed
+This module contains the base class from which pipe elements should be subclassed.
+It also contains the Requirement class which is a connection between certain 
+attributes of PipeElements. This module also contains the DataFlow class which
+is a simple container for data to be addressed to the right PipeElements
 
 """
 
@@ -52,6 +55,12 @@ class PipeElement(Base):
     attach_downstream(downstream)
         Attaches the given PipeElement as a downstream flow destination
         
+    detach_upstream(element)
+        Detaches all or only the given element from upstream elements
+        
+    detach_downstream(element)
+        Detaches all or only the given element from downstream elements
+        
     add_requirement(*requirements)
         Adds a requirement to the PipeElement
         
@@ -66,9 +75,6 @@ class PipeElement(Base):
 
     Properties
     ----------------
-    executed : bool
-        If the PipeElement has executed the flow method
-
     n_output : int
         The number of outputs produced
 
@@ -436,6 +442,61 @@ class PipeElement(Base):
             self._unconfigured_downstream = None
             self._unconfigured_upstream = None
             self._unconfigured_requirements = None
+            
+    def reconfigure_alt(self, *pipe_element):
+        """Reconfigures all unconfigured PipeElements and Requirements from config
+
+        When a PipeElement is created through from_config method,
+        the PipeElements and the Requirements that come from that configuration
+        dictionary are also just configuration dictionaries, and must therefore also be
+        converted back into the actual PipeElement and Requirement objects. The config
+        dictionaries are iterated through and matched up with the given PipeElements in
+        order to match their ID number. Through this method the proper object reference
+        are re-established.
+
+        Arguments
+        ------------------
+        *pipe_element : PipeElement
+            The PipeElement(s) that is referenced by ID in the configuration file of
+            each unconfigured Requirement
+
+        Raises
+        ------------------
+        ValueError
+            When the given PipeElements do not sufficiently manage to re-establish all
+            the references
+
+        """
+        upstream =  []
+        downstream = []
+        requirements = []
+        
+        id_element = {e.id : e for e in pipe_element}
+        
+        for pe_id in self._unconfigured_downstream:
+            if pe_id in id_element.keys():
+                downstream.append(id_element[pe_id])
+            else:
+                raise ValueError(f"PipeElement {pe_id} was not found in the given PipeElements")
+
+        for pe_id in self._unconfigured_upstream:
+            if pe_id in id_element.keys():
+                upstream.append(id_element[pe_id])
+            else:
+                raise ValueError(f"PipeElement {pe_id} was not found in the given PipeElements")
+                
+        for req in self._unconfigured_requirements:
+            if req["pipe_element"] in id_element.keys():
+                requirements.append(Requirement.from_config(req, id_element[req["pipe_element"]))
+            else:
+                raise ValueError(f"Requirement {req} could not be reconfigured as {req["pipe_element"]} was missing from the given pipe_element")
+        
+        self.downstream = tuple(downstream)
+        self.upstream = tuple(upstream)
+        self.requirements = set(requirements)
+        self._unconfigured_downstream = None
+        self._unconfigured_upstream = None
+        self._unconfigured_requirements = None
 
     def _flow_preset_check(self, x):
         """Checks the preset configuration and data
