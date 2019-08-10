@@ -251,30 +251,99 @@ class PipeSystem(Base):
         return cls.from_config(config)
 
     @staticmethod
-    def _add(*add):
-        all_inlets = [inlet for pipe_system in add for inlet in pipe_system.inlets]
-        all_outlets = [outlet for pipe_system in add for outlet in pipe_system.outlets]
-        name = ": ".join([pipe_system.name for pipe_system in add])
+    def add(*pipe_system):
+        """Adds the given PipeSystems into a single concurrent PipeSystem
+
+        The given PipeSystems are added by combining their inlets and outlets into two
+        combined lists and feeding that into a single PipeSystem. This results in a
+        single PipeSystem with the given PipeSystems as concurrent elements
+
+        Arguments
+        ------------------
+        *pipe_system : PipeSystem
+            The PipeSystems that should be added together
+
+        Returns
+        ------------------
+        ps : PipeSystem
+            The single PipeSystem into which the given PipeSystems were added
+
+        Raises
+        ------------------
+        TypeError
+            When something else other than a PipeSystem is trying to be added
+
+        """
+        for a in pipe_system:
+            if not isinstance(a, PipeSystem):
+                raise TypeError(f"Cannot extend PipeSystems with type {type(a)}")
+
+        if len(pipe_system) == 1:
+            return pipe_system[0]
+
+        all_inlets = [
+            inlet for pipe_system in pipe_system for inlet in pipe_system.inlets
+        ]
+        all_outlets = [
+            outlet for pipe_system in pipe_system for outlet in pipe_system.outlets
+        ]
+        name = ": ".join([pipe_system.name for pipe_system in pipe_system])
         return PipeSystem(inlets=all_inlets, outlets=all_outlets, name=name)
 
     @staticmethod
-    def _extend(*extend):
-        for i, ps in enumerate(extend):
-            if i > 0:
-                if len(extend[i - 1].outlets) != len(extend[i].inlets):
-                    raise ValueError(
-                        f"{extend[i-1]} outlets do not match amount of {extend[i]} inlets"
-                    )
-        if len(extend) < 2:
-            raise ValueError("At least more than 1 PipeSystem needs to be given")
+    def concatenate(*pipe_system):
+        """Concatenates the given PipeSystems into a single Sequential PipeSystem
 
-        inlets = extend[0].inlets
-        outlets = extend[-1].outlets
+        The PipeSystems are concatenated together by removing their inlets and outlets
+        and connecting them via a PipeElement. This expects that the amount of Outlets
+        matches the amount of Inlets of the PipeSystem is supposed to connect to. If a
+        discrepancy here is found an Exception is raised.
+
+        Arguments
+        ------------------
+        *pipe_system : PipeSystem
+            The PipeSystems that should be concatenated together
+
+        Returns
+        ------------------
+        ps : PipeSystem
+            The single PipeSystem with the concatenated PipeSystem
+
+        Raises
+        ------------------
+        TypeError
+            When something else other than a PipeSystem is trying to be added
+
+        AttributeError
+            When the length of the outlets of a PipeSystem do not match the following
+            PipeSystem's outlets
+
+        """
+
+        for e in pipe_system:
+            if not isinstance(e, PipeSystem):
+                raise TypeError(f"Cannot extend PipeSystems with type {type(e)}")
+
+        if len(pipe_system) == 1:
+            return pipe_system[0]
+
+        for i, ps in enumerate(pipe_system):
+            if i > 0:
+                if len(pipe_system[i - 1].outlets) != len(pipe_system[i].inlets):
+                    raise AttributeError(
+                        f"{pipe_system[i-1]} outlets do not match amount of "
+                        f"{pipe_system[i]} inlets"
+                    )
+
+        inlets = pipe_system[0].inlets
+        outlets = pipe_system[-1].outlets
         name = ""
 
-        for i, ps in enumerate(extend):
+        for i, ps in enumerate(pipe_system):
             if i > 0:
-                for outlet, inlet in zip(extend[i - 1].outlets, extend[i].inlets):
+                for outlet, inlet in zip(
+                    pipe_system[i - 1].outlets, pipe_system[i].inlets
+                ):
                     up = outlet.upstream[0]
                     down = inlet.downstream[0]
                     up.detach_downstream()
@@ -293,29 +362,7 @@ class PipeSystem(Base):
         return element in self.all_elements
 
     def __add__(self, other):
-        all_inlets = self.inlets + other.inlets
-        all_outlets = self.outlets + other.outlets
-        name = self.name + other.name
-        return PipeSystem(inlets=all_inlets, outlets=all_outlets, name=name)
+        return self.add(self, other)
 
     def __mul__(self, other):
-        if len(self.outlets) != len(other.outlets):
-            raise ValueError(
-                f"Number of outlets does not match number of inlets. Out: "
-                f"{self.outlets} != In: {other.inlets}"
-            )
-
-        inlets = self.inlets
-        outlets = other.outlets
-
-        for outlet, inlet in zip(self.outlets, other.inlets):
-            up = outlet.upstream[0]
-            down = inlet.downstream[0]
-            up.detach_downstream()
-            down.detach_upstream()
-
-            down(PipeElement(name=outlet.name + inlet.name)(up))
-
-        name = self.name + other.name
-
-        return PipeSystem(inlets=inlets, outlets=outlets, name=name)
+        return self.concatenate(self, other)

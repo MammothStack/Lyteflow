@@ -1,5 +1,6 @@
 # Third party imports
 import pytest
+import warnings
 
 # Local imports
 from lyteflow.construct import PipeSystem
@@ -63,7 +64,6 @@ class TestDuplicator:
     def test_invalid_setup(self, dupe_pipe_invalid, simple_data_frame):
         with pytest.warns(UserWarning):
             dupe_pipe_invalid.flow(simple_data_frame)
-        # assert (expected == dupe_pipe_invalid.flow(simple_data_frame)[0]).all().all()
 
     def test_invalid_setup_1(self, dupe_pipe_invalid, simple_data_frame):
         expected = pd.DataFrame(

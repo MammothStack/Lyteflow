@@ -70,16 +70,16 @@ class Inlet(PipeElement):
                 self.input_dimensions = x.shape
                 if len(x.shape) <= 2:
                     try:
-                        self.input_columns = x.columns
+                        self.input_columns = list(x.columns)
                     except AttributeError:
                         x = pd.DataFrame(x)
-                        self.input_columns = x.columns
+                        self.input_columns = list(x.columns)
             except AttributeError:
                 x = np.asarray(x)
                 self.input_dimensions = x.shape
                 if len(x.shape) <= 2:
                     x = pd.DataFrame(x)
-                    self.input_columns = x.columns
+                    self.input_columns = list(x.columns)
         return x
 
     def attach_upstream(self, upstream):

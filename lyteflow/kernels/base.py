@@ -552,7 +552,7 @@ class PipeElement(Base):
             )
         try:
             self.input_dimensions = x.data.shape
-            self.input_columns = x.data.columns
+            self.input_columns = list(x.data.columns)
         except AttributeError:
             pass
 
@@ -568,7 +568,7 @@ class PipeElement(Base):
 
         try:
             self.output_dimensions = x.data.shape
-            self.output_columns = x.data.columns
+            self.output_columns = list(x.data.columns)
         except AttributeError:
             pass
 
