@@ -1,6 +1,6 @@
-"""# TODO: Add module title
+"""Module to scale, normalize and standardise inputs
 
-# TODO: add module description
+
 
 """
 
@@ -19,7 +19,7 @@ def _handle_zero_scalar(scalar):
 
     Arguments
     ------------------
-    scalar : int / float / np.ndarray
+    scalar : int / float / np.array
         The scalar or list of scalars to be transformed
 
     """
@@ -45,53 +45,11 @@ class Normalizer(PipeElement):
     minimums and maximums are applied across all columns jointly. When dependent is set
     to false the minimums and maximums are applied individually
 
-    Arguments
-    ------------------
-    columns : list (default=None)
-        The columns of the given input that should be normalized. If None then all
-        columns of the given input will be used.
-
-    dependent : bool (default=False)
-        If the columns of the given input should be transformed dependent on the others
-
-    scale_from : tuple
-        The minimum, maximum from where the values are scaled from
-
-    scale_to : tuple
-        The minimum, maximum from where the values are scaled to
-
-    upstream : PipeElement
-        The pipe element which is connected upstream, meaning the upstream element will
-        flow data to this element
-
-    downstream : PipeElement
-        The pipe element which is connected downstream, meaning this pipe element will
-        flow data to the downstream element
-
-    name : str
-        The name that should be given to the PipeElement
-
     Methods
     ------------------
     transform(x)
         Returns normalized data based on the given columns
 
-    flow(x)
-        Method that is called when passing data to next PipeElement
-
-    attach_upstream(upstream)
-        Attaches the given PipeElement as an upstream flow source
-
-    attach_downstream(downstream)
-        Attaches the given PipeElement as a downstream flow destination
-
-    to_config()
-        Creates serializable PipeElement
-
-    Raises
-    ------------------
-    ValueError
-        When given range scale_from/scale_to are not in the correct format
     """
 
     def __init__(
@@ -102,6 +60,30 @@ class Normalizer(PipeElement):
         scale_to=(0, 1),
         **kwargs
     ):
+        """Constructor
+
+        Arguments
+        ------------------
+        columns : list (default=None)
+            The columns of the given input that should be normalized. If None then all
+            columns of the given input will be used.
+
+        dependent : bool (default=False)
+            If the columns of the given input should be transformed dependent on the
+            others
+
+        scale_from : tuple
+            The minimum, maximum from where the values are scaled from
+
+        scale_to : tuple
+            The minimum, maximum from where the values are scaled to
+
+        Raises
+        ------------------
+        ValueError
+            When given range scale_from/scale_to are not in the correct format
+
+        """
         PipeElement.__init__(self, **kwargs)
         self.columns = columns
         self.dependent = dependent
@@ -123,7 +105,7 @@ class Normalizer(PipeElement):
 
         Arguments
         ------------------
-        x : pd.DataFrame/np.ndarray
+        x : pd.DataFrame / np.array
             The input which should be normalized
 
         Returns
@@ -154,8 +136,20 @@ class Normalizer(PipeElement):
 
 
 class Standardizer(PipeElement):
-    """
-    # TODO: doc
+    """Standardises the inputs dependent or independently
+
+    This class is a subclass of PipeElement and inherits its behaviour apart form the
+    transform function, which standardises the input based on the formula:
+        (x - mean) / standard deviation
+
+    The columns of the input can be considered dependent on each other so the
+    standardisation is applied to all the data or on a column by column basis
+
+    Methods
+    ------------------
+    transform(x)
+        Returns the standardised values
+
     """
 
     def __init__(self, dependent=False, **kwargs):
@@ -163,26 +157,77 @@ class Standardizer(PipeElement):
         self.dependent = dependent
 
     def transform(self, x):
-        x_val = x.values
+        """Returns the standardised values
+
+        Arguments
+        ------------------
+        x : pd.DataFrame / np.array
+            The input that should standardised
+
+        Returns
+        ------------------
+        x : pd.DataFrame
+            Standardised data
+
+        """
+        try:
+            x_val = x.values
+        except AttributeError:
+            x_val = x
+
         axis = None if self.dependent else 0
         mean = np.nanmean(x_val, axis=axis)
         std = np.nanstd(x_val, axis=axis)
-        return pd.DataFrame(
-            (x_val - mean) / _handle_zero_scalar(std),
-            columns=x.columns + ":standardized",
-        )
+        try:
+            return pd.DataFrame(
+                (x_val - mean) / _handle_zero_scalar(std),
+                columns=x.columns + ":standardized",
+            )
+        except AttributeError:
+            df = pd.DataFrame((x_val - mean) / _handle_zero_scalar(std))
+            df.columns = [c + ":standardized" for c in df.columns]
+            return df
 
 
 class Scaler(PipeElement):
-    """
-    ' TODO: doc
+    """Scales the array or DataFrame with the given scalar
+
+    This class subclasses from PipeElement and therefore inherits all of its behaviour
+    except for the transform function.
+
+    Methods
+    ------------------
+    transform(x)
+        Scales the given array and the DataFrame with the scalar
+
     """
 
     def __init__(self, scalar, **kwargs):
+        """Constructor
+
+        Arguments
+        ------------------
+        scalar : float / int
+            The scalar with which the input should be scaled with
+
+        """
         PipeElement.__init__(self, **kwargs)
         self.scalar = scalar
 
     def transform(self, x):
+        """Scales the given array and the DataFrame with the scalar
+
+        Arguments
+        ------------------
+        x : np.array / pd.DataFrame
+            The array or DataFrame that should be scaled
+
+        Returns
+        ------------------
+        x : np.array / pd.DataFrame
+            The scaled DataFrame
+
+        """
         try:
             return pd.DataFrame(x.values * self.scalar)
         except AttributeError:

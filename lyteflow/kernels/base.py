@@ -1,14 +1,15 @@
 """The base class for all subclassed PipeElements
 
-This module contains the base class from which pipe elements should be subclassed
+This module contains the base class from which pipe elements should be subclassed.
+It also contains the Requirement class which is a connection between certain 
+attributes of PipeElements. This module also contains the DataFlow class which
+is a simple container for data to be addressed to the right PipeElements
 
 """
 
 # Standard library imports
 import importlib
 import warnings
-
-# Third party imports
 
 # Local application imports
 from lyteflow.base import Base
@@ -54,6 +55,12 @@ class PipeElement(Base):
     attach_downstream(downstream)
         Attaches the given PipeElement as a downstream flow destination
         
+    detach_upstream(element)
+        Detaches all or only the given element from upstream elements
+        
+    detach_downstream(element)
+        Detaches all or only the given element from downstream elements
+        
     add_requirement(*requirements)
         Adds a requirement to the PipeElement
         
@@ -68,8 +75,11 @@ class PipeElement(Base):
 
     Properties
     ----------------
-    executed : bool
-        If the PipeElement has executed the flow method
+    n_input : int
+        The number of inputs received in flow
+        
+    n_output : int
+        The number of outputs produced in flow
 
     configured : bool
         If the PipeElement is configured
@@ -114,13 +124,18 @@ class PipeElement(Base):
         kwargs.pop("unconfigured_upstream", None)
         kwargs.pop("unconfigured_downstream", None)
 
-        self._executed = False
+        self._n_output = None
+        self._n_input = None
 
         Base.__init__(self, **kwargs)
 
     @property
-    def executed(self):
-        return self._executed
+    def n_input(self):
+        return self._n_input
+
+    @property
+    def n_output(self):
+        return self._n_output
 
     @property
     def configured(self):
@@ -187,7 +202,7 @@ class PipeElement(Base):
             When the given FlowData is not addressed to this PipeElement
 
         """
-
+        self._n_input = 1
         self._flow_preset_check(x)
         to_element = self.downstream[0] if self.downstream != tuple() else None
         flow_data = FlowData(
@@ -195,14 +210,15 @@ class PipeElement(Base):
         )
         self._flow_postset_check(flow_data)
         self._executed = True
+        self._n_output = 1
 
         return (flow_data,)
 
     def reset(self):
         """Resets the PipeElement"""
-        self.input_columns, self.input_dimensions = None, None
-        self.output_columns, self.output_dimensions = None, None
-        self._executed = False
+        super().reset()
+        self._n_output = None
+        self._n_input = None
 
     def attach_upstream(self, upstream):
         """Attaches an upstream PipeElement
@@ -242,6 +258,54 @@ class PipeElement(Base):
         else:
             raise AttributeError("Only one Downstream object may be set")
 
+    def detach_upstream(self, element=None):
+        """Detaches all or only the given element from upstream elements
+
+        Arguments
+        ------------------
+        element : PipeElement
+            The PipeElement that should be removed from the upstream elements
+
+        Raises
+        ------------------
+        ValueError
+            When the given PipeElement is not part of the upstream elements
+
+
+        """
+        if element is None:
+            self.upstream = tuple()
+        else:
+            if element not in self.upstream:
+                raise ValueError(f"{element} is not a upstream element")
+            elements = list(self.upstream)
+            elements.remove(element)
+            self.upstream = tuple(elements)
+
+    def detach_downstream(self, element=None):
+        """Detaches all or only the given element from downstream elements
+
+        Arguments
+        ------------------
+        element : PipeElement
+            The PipeElement that should be removed from the downstream elements
+
+        Raises
+        ------------------
+        ValueError
+            When the given PipeElement is not part of the downstream elements
+
+
+        """
+        if element is None:
+            self.downstream = tuple()
+        else:
+            if element not in self.downstream:
+                raise ValueError(f"{element} is not a downstream element")
+            elements = list(self.downstream)
+            elements.remove(element)
+            self.downstream = tuple(elements)
+
     def add_requirement(self, *requirements):
         """Adds a requirement to the PipeElement
 
@@ -277,6 +341,8 @@ class PipeElement(Base):
             "input_columns",
             "output_columns",
             "_executed",
+            "_n_output",
+            "_n_input",
             "requirements",
             "func",
             "_unconfigured_upstream",
@@ -310,7 +376,8 @@ class PipeElement(Base):
             
         Returns
         ------------------
-        PipeElement object
+        pe : PipeElement
+            Instantiated but unconfigured PipeElement
         
         """
         _cls = getattr(importlib.import_module("lyteflow"), config["class_name"])
@@ -386,6 +453,69 @@ class PipeElement(Base):
             self._unconfigured_upstream = None
             self._unconfigured_requirements = None
 
+    def reconfigure_alt(self, *pipe_element):
+        """Reconfigures all unconfigured PipeElements and Requirements from config
+
+        When a PipeElement is created through from_config method,
+        the PipeElements and the Requirements that come from that configuration
+        dictionary are also just configuration dictionaries, and must therefore also be
+        converted back into the actual PipeElement and Requirement objects. The config
+        dictionaries are iterated through and matched up with the given PipeElements in
+        order to match their ID number. Through this method the proper object reference
+        are re-established.
+
+        Arguments
+        ------------------
+        *pipe_element : PipeElement
+            The PipeElement(s) that is referenced by ID in the configuration file of
+            each unconfigured Requirement
+
+        Raises
+        ------------------
+        ValueError
+            When the given PipeElements do not sufficiently manage to re-establish all
+            the references
+
+        """
+        upstream = []
+        downstream = []
+        requirements = []
+
+        id_element = {e.id: e for e in pipe_element}
+
+        for pe_id in self._unconfigured_downstream:
+            if pe_id in id_element.keys():
+                downstream.append(id_element[pe_id])
+            else:
+                raise ValueError(
+                    f"PipeElement {pe_id} was not found in the given PipeElements"
+                )
+
+        for pe_id in self._unconfigured_upstream:
+            if pe_id in id_element.keys():
+                upstream.append(id_element[pe_id])
+            else:
+                raise ValueError(
+                    f"PipeElement {pe_id} was not found in the given PipeElements"
+                )
+
+        for req in self._unconfigured_requirements:
+            if req["pipe_element"] in id_element.keys():
+                requirements.append(
+                    Requirement.from_config(req, id_element[req["pipe_element"]])
+                )
+            else:
+                raise ValueError(
+                    f"Requirement {req} could not be reconfigured as {req['pipe_element']} was missing from the given pipe_element"
+                )
+
+        self.downstream = tuple(downstream)
+        self.upstream = tuple(upstream)
+        self.requirements = set(requirements)
+        self._unconfigured_downstream = None
+        self._unconfigured_upstream = None
+        self._unconfigured_requirements = None
+
     def _flow_preset_check(self, x):
         """Checks the preset configuration and data
 
@@ -420,10 +550,9 @@ class PipeElement(Base):
                 requirement.argument,
                 requirement.pipe_element.__getattribute__(requirement.attribute),
             )
-
         try:
             self.input_dimensions = x.data.shape
-            self.input_columns = x.data.columns
+            self.input_columns = list(x.data.columns)
         except AttributeError:
             pass
 
@@ -436,9 +565,10 @@ class PipeElement(Base):
             The data to be checked and set
 
         """
+
         try:
             self.output_dimensions = x.data.shape
-            self.output_columns = x.data.columns
+            self.output_columns = list(x.data.columns)
         except AttributeError:
             pass
 

@@ -8,8 +8,6 @@ satisfy reachability in the PipeSystem's current configuration.
 
 # Standard library imports
 import json
-import warnings
-import sys
 
 # Third party imports
 from tqdm import tqdm
@@ -86,8 +84,12 @@ class PipeSystem(Base):
 
         self.inlets = inlets
         self.outlets = outlets
+        self.elements_non_io = fetch_pipe_elements(
+            self, ignore_inlets=True, ignore_outlets=True
+        )
+        self.all_elements = inlets + outlets + self.elements_non_io
         self.verbose = verbose
-        self.execution_sequence = PTGraph.get_execution_sequence_(self)
+        self.execution_sequence = PTGraph(self).get_execution_sequence()
 
     def flow(self, *inlet_data):
         """Initiates the flow of inlet_data to the PipeSystem Inlets
@@ -131,7 +133,7 @@ class PipeSystem(Base):
                 f"but only {len(inlet_data)} were given"
             )
 
-        data_hold = {e: [] for e in fetch_pipe_elements(self)}
+        data_hold = {e: [] for e in self.all_elements}
         output = {}
 
         for i in range(len(self.inlets)):
@@ -144,6 +146,7 @@ class PipeSystem(Base):
             for pipe_element in pbar:
                 pbar.set_description(f"Flowing {pipe_element.name}")
                 _execution(pipe_element, data_hold, output)
+            pbar.close()
         else:
             for pipe_element in self.execution_sequence:
                 _execution(pipe_element, data_hold, output)
@@ -152,8 +155,19 @@ class PipeSystem(Base):
         self.input_columns = [x.input_columns for x in self.inlets]
         self.output_dimensions = [x.output_dimensions for x in self.outlets]
         self.output_columns = [x.output_columns for x in self.outlets]
+        self._executed = True
 
         return [output[outlet].data for outlet in self.outlets]
+
+    def reset(self):
+        """Resets all the PipeElements and itself
+        
+        
+        
+        """
+        super().reset()
+        for element in self.all_elements:
+            element.reset()
 
     def to_config(self):
         """Gives a configuration dictionary of class arguments
@@ -170,14 +184,10 @@ class PipeSystem(Base):
 
         """
 
-        elements = fetch_pipe_elements(
-            pipesystem=self, ignore_inlets=True, ignore_outlets=True
-        )
-
         return {
             "inlets": [e.to_config() for e in self.inlets],
             "outlets": [e.to_config() for e in self.outlets],
-            "elements": [e.to_config() for e in elements],
+            "elements": [e.to_config() for e in self.elements_non_io],
             "name": self.name,
         }
 
@@ -206,6 +216,7 @@ class PipeSystem(Base):
         Returns
         ------------------
         PipeSystem
+            Configured PipeSystem
         
         """
         inlets = [Inlet.from_config(c, element_id=True) for c in config["inlets"]]
@@ -238,3 +249,120 @@ class PipeSystem(Base):
         json_str = file.read()
         config = json.loads(json_str)
         return cls.from_config(config)
+
+    @staticmethod
+    def add(*pipe_system):
+        """Adds the given PipeSystems into a single concurrent PipeSystem
+
+        The given PipeSystems are added by combining their inlets and outlets into two
+        combined lists and feeding that into a single PipeSystem. This results in a
+        single PipeSystem with the given PipeSystems as concurrent elements
+
+        Arguments
+        ------------------
+        *pipe_system : PipeSystem
+            The PipeSystems that should be added together
+
+        Returns
+        ------------------
+        ps : PipeSystem
+            The single PipeSystem into which the given PipeSystems were added
+
+        Raises
+        ------------------
+        TypeError
+            When something else other than a PipeSystem is trying to be added
+
+        """
+        for a in pipe_system:
+            if not isinstance(a, PipeSystem):
+                raise TypeError(f"Cannot extend PipeSystems with type {type(a)}")
+
+        if len(pipe_system) == 1:
+            return pipe_system[0]
+
+        all_inlets = [
+            inlet for pipe_system in pipe_system for inlet in pipe_system.inlets
+        ]
+        all_outlets = [
+            outlet for pipe_system in pipe_system for outlet in pipe_system.outlets
+        ]
+        name = ": ".join([pipe_system.name for pipe_system in pipe_system])
+        return PipeSystem(inlets=all_inlets, outlets=all_outlets, name=name)
+
+    @staticmethod
+    def concatenate(*pipe_system):
+        """Concatenates the given PipeSystems into a single Sequential PipeSystem
+
+        The PipeSystems are concatenated together by removing their inlets and outlets
+        and connecting them via a PipeElement. This expects that the amount of Outlets
+        matches the amount of Inlets of the PipeSystem is supposed to connect to. If a
+        discrepancy here is found an Exception is raised.
+
+        Arguments
+        ------------------
+        *pipe_system : PipeSystem
+            The PipeSystems that should be concatenated together
+
+        Returns
+        ------------------
+        ps : PipeSystem
+            The single PipeSystem with the concatenated PipeSystem
+
+        Raises
+        ------------------
+        TypeError
+            When something else other than a PipeSystem is trying to be added
+
+        AttributeError
+            When the length of the outlets of a PipeSystem do not match the following
+            PipeSystem's outlets
+
+        """
+
+        for e in pipe_system:
+            if not isinstance(e, PipeSystem):
+                raise TypeError(f"Cannot extend PipeSystems with type {type(e)}")
+
+        if len(pipe_system) == 1:
+            return pipe_system[0]
+
+        for i, ps in enumerate(pipe_system):
+            if i > 0:
+                if len(pipe_system[i - 1].outlets) != len(pipe_system[i].inlets):
+                    raise AttributeError(
+                        f"{pipe_system[i-1]} outlets do not match amount of "
+                        f"{pipe_system[i]} inlets"
+                    )
+
+        inlets = pipe_system[0].inlets
+        outlets = pipe_system[-1].outlets
+        name = ""
+
+        for i, ps in enumerate(pipe_system):
+            if i > 0:
+                for outlet, inlet in zip(
+                    pipe_system[i - 1].outlets, pipe_system[i].inlets
+                ):
+                    up = outlet.upstream[0]
+                    down = inlet.downstream[0]
+                    up.detach_downstream()
+                    down.detach_upstream()
+
+                    down(PipeElement(name=outlet.name + inlet.name)(up))
+
+            name += ps.name
+
+        return PipeSystem(inlets=inlets, outlets=outlets, name=name)
+
+    def __len__(self):
+        return len(self.all_elements)
+
+    def __contains__(self, element):
+        return element in self.all_elements
+
+    def __add__(self, other):
+        return self.add(self, other)
+
+    def __mul__(self, other):
+        return self.concatenate(self, other)

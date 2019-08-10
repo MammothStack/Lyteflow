@@ -23,7 +23,19 @@ class Base:
     output_columns : list
         The column names of the output if the output is a pandas DataFrame
     
+    executed : bool
+        If this object has executed its flow method
+        
+    Methods
+    ------------------
+    flow(x)
+        Method to be implemented by its subclasses
+        
+    reset()
+        Resets the attributes
+    
     """
+
     def __init__(self, **kwargs):
         """Constructor for Base class
         
@@ -41,8 +53,20 @@ class Base:
         self.output_dimensions = None
         self.input_columns = None
         self.output_columns = None
+        self._executed = False
         self.name = kwargs.get("name", self.__class__.__name__)
         self.id = kwargs.get("id", id(self))
 
+    @property
+    def executed(self):
+        return self._executed
+
     def flow(self, x):
+        """Method to be implemented by its subclasses"""
         raise NotImplementedError
+
+    def reset(self):
+        """Resets the attributes"""
+        self.input_columns, self.input_dimensions = None, None
+        self.output_columns, self.output_dimensions = None, None
+        self._executed = False

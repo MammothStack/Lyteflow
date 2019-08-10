@@ -64,7 +64,7 @@ class TestConfig:
             "rotations": [-90, 0, 90],
             "remove_padding": True,
             "keep_original": True,
-            "n_output": 3,
+            "n_rotations": 3,
         }
 
         result = r.to_config()["attributes"]
@@ -106,6 +106,22 @@ class TestConfig:
         c_pe = PipeElement.from_config(r.to_config(), element_id=True)
         with pytest.raises(ValueError):
             c_pe.reconfigure(i, r)
+
+    def test_reconfigure_wrong_elements(self, connected_pipe_elements):
+        i, r, o = connected_pipe_elements
+        c_pe = PipeElement.from_config(r.to_config(), element_id=True)
+        with pytest.raises(AttributeError):
+            c_pe.reconfigure(3, "str")
+
+    def test_reconfigure_incomplete_elements_requirement(
+        self, connected_pipe_elements_2_requirements
+    ):
+        pass
+        # TODO
+
+    def test_reconfigure_requirements(self, connected_pipe_elements_2_requirements):
+        pass
+        # TODO
 
 
 class TestCanExecute:
@@ -266,3 +282,12 @@ class TestFlow:
         random_flow_data.to_element = c_pe
         with pytest.raises(AttributeError):
             c_pe.flow(random_flow_data)
+
+
+class TestAttachment:
+    pass
+
+
+# TODO: Test attachment
+# TODO: Test detachment
+# TODO: Test attributes

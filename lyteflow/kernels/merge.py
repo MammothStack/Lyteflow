@@ -89,8 +89,11 @@ class _Merge(PipeElement):
 
         ValueError
             When the given FlowData is not addressed to this PipeElement
+            
         """
+
         self._flow_preset_check(*x)
+        self._n_input = len(x)
         flow_data = FlowData(
             from_element=self,
             data=self.transform([fd.data for fd in x]),
@@ -98,6 +101,7 @@ class _Merge(PipeElement):
         )
         self._executed = True
         self._flow_postset_check(flow_data)
+        self._n_output = 1
 
         return (flow_data,)
 

@@ -201,7 +201,7 @@ class Rotator(PipeElement):
 
         self.keep_original = keep_original
         self.rotations = sorted(set(verified_rotations))
-        self.n_output = len(self.rotations)
+        self.n_rotations = len(self.rotations)
         self.remove_padding = remove_padding
 
     def transform(self, x):

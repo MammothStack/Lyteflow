@@ -4,9 +4,8 @@ This module contains all functions relating to iterating
 through all connected PipeElements in a PipeSystem, this 
 includes all set Requirements as well.
 
-This module also contains useful functions for creating
-Reachability Graphs that are used by the PipeSystem to
-ensure that the given connected PipeElements are configured
+This module also contains useful functions for creating Reachability Graphs that are
+used by the PipeSystem to ensure that the given connected PipeElements are configured
 correctly
 
 """
@@ -22,19 +21,36 @@ import numpy as np
 
 
 def fetch_pipe_elements(pipesystem, ignore_inlets=False, ignore_outlets=False):
-    """Iterates through the PipeSystem and returns a list of all PipeElements"""
+    """Iterates through the PipeSystem and returns a list of all PipeElements
+
+    Arguments
+    ------------------
+    pipesystem : PipeSystem
+        The PipeSystem for which the elements should be gathered for
+
+    ignore_inlets : bool
+        If the Inlet PipeElements should be ignored
+
+    ignore_outlets : bool
+        If the Outlet PipeElements should be ignored
+
+    Returns
+    ------------------
+    elements : list
+        List of PipeElements that are found in the given PipeSystem
+
+    """
 
     def traverse(element):
-        if element is None:
+        if element is None or element in elements:
             return
 
-        if element not in elements:
-            if ignore_inlets and element in pipesystem.inlets:
-                pass
-            elif ignore_outlets and element in pipesystem.outlets:
-                pass
-            else:
-                elements.append(element)
+        if not (
+            (element in elements)
+            or (ignore_inlets and element in pipesystem.inlets)
+            or (ignore_outlets and element in pipesystem.outlets)
+        ):
+            elements.append(element)
 
         for down in element.downstream:
             traverse(down)
@@ -43,6 +59,45 @@ def fetch_pipe_elements(pipesystem, ignore_inlets=False, ignore_outlets=False):
     for i in pipesystem.inlets:
         traverse(i)
     return elements
+
+
+def column_names_to_formatted_list(list_of_columns):
+    """Method for creating two dimensional conform array
+
+    Arguments
+    ------------------
+    list_of_columns : list / str
+        Either a single column name as str which will result in [[str]], or a list of
+        str which will result in [[str, str str]].
+
+    Returns
+    ------------------
+    formatted_list : list
+        The formatted list
+
+    Raises
+    ------------------
+    ValueError
+        When the given list cannot be parsed
+
+    """
+    if isinstance(list_of_columns, str):
+        return [[list_of_columns]]
+    elif isinstance(list_of_columns, list):
+        if any([isinstance(c, list) for c in list_of_columns]):
+            columns = []
+            for c in list_of_columns:
+                if isinstance(c, str):
+                    columns.append([c])
+                elif isinstance(c, list):
+                    columns.append(c)
+                else:
+                    raise ValueError(f"{c} cannot be parsed to column")
+            return columns
+        else:
+            return [list_of_columns]
+    else:
+        raise ValueError(f"{list_of_columns} cannot be parsed")
 
 
 class PTGraph:
@@ -73,7 +128,7 @@ class PTGraph:
 
     """
 
-    def __init__(self, ps):
+    def __init__(self, pipesystem):
         """Constructor of PTGraph
 
         The conversion of the PipeSystem is immediately started in the constructor
@@ -93,20 +148,17 @@ class PTGraph:
         self.W_neg = None
         self.W_pos = None
         self.W_t = None
-        self._convert(ps)
+        self._convert(pipesystem)
 
-    def _convert(self, ps):
+    def _convert(self, pipesystem):
         """Converts the given PipeSystem to a PTGraph
 
         Arguments
         ------------------
-        ps : PipeSystem
+        pipesystem : PipeSystem
             The PipeSystem that should be converted
 
         """
-
-        # Get all pipe elements
-        all_elements = fetch_pipe_elements(ps)
 
         # Dictionary with _Transitions with PipeElement.id as key
         transitions = {
@@ -114,7 +166,7 @@ class PTGraph:
                 pipe_element=pipe_element,
                 meta_node=_Node(name=pipe_element.name + "_meta"),
             )
-            for pipe_element in all_elements
+            for pipe_element in pipesystem.all_elements
         }
 
         # Iterate transitions and create nodes and connect to other nodes
@@ -139,13 +191,13 @@ class PTGraph:
                 transition.add_to_node(n)
 
         # Create upstream nodes for inlets and designate them as _M_0
-        for inlet in ps.inlets:
+        for inlet in pipesystem.inlets:
             n = _Node(name=inlet.name)
             transitions[inlet.id].add_from_node(n)
             self._M_0 = set(list(self._M_0) + [n])
 
         # Create downstream nodes for outlets and desginate them as _F
-        for outlet in ps.outlets:
+        for outlet in pipesystem.outlets:
             n = _Node(name=outlet.name)
             transitions[outlet.id].add_to_node(n)
             self._F = set(list(self._F) + [n])
@@ -249,26 +301,10 @@ class PTGraph:
         else:
             return [transition.pipe_element for transition in transitions]
 
-    @classmethod
-    def get_execution_sequence_(cls, pipe_system):
-        """Creates a PTGraph and returns the execution sequence
-
-        Arguments
-        ------------------
-        pipe_system : PipeSystem
-            The PipeSystem for which a execution sequence should be calculated
-
-        Returns
-        ------------------
-        execution_sequence : list
-            A ordered list of PipeElements in execution order
-
-        """
-        pt = cls(pipe_system)
-        return pt.get_execution_sequence()
-
 
 class _Node:
+    """Class for Place-Transition-Graph Node modelling"""
+
     def __init__(self, name="Node"):
         self.name = name
 
@@ -277,6 +313,8 @@ class _Node:
 
 
 class _Transition:
+    """Class for Place-Transition-Graph Transition modelling"""
+
     def __init__(self, pipe_element, meta_node=None):
         self.pipe_element = pipe_element
         self.from_node = []

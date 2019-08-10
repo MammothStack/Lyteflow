@@ -52,7 +52,7 @@ def make_complex_pipe_system_req():
     con = Concatenator()(dup)
     out_2 = Outlet(name="out_2")(con)
 
-    dup.add_requirement(Requirement(rot, attribute="n_output", argument="n_output"))
+    dup.add_requirement(Requirement(rot, attribute="n_rotations", argument="n_result"))
 
     return PipeSystem(
         inlets=[in_1, in_2], outlets=[out_1, out_2], name="ps", verbose=True
@@ -61,5 +61,6 @@ def make_complex_pipe_system_req():
 
 ps_complex = make_complex_pipe_system()
 ps_simple = make_simple_pipesystem()
+ps_complex_req = make_complex_pipe_system_req()
 
 pt = PTGraph(ps_complex)
